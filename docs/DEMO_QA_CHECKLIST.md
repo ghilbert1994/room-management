@@ -102,6 +102,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 | User Account Codes | Yes | No | No | No |
 | User Management | Yes | No | No | No |
 | Lab Management | Yes | No | Yes | No |
+| Facility Issues | Yes | No | Yes | No |
 | Analytics Reports | Yes | No | Yes | No |
 | Settings | Yes | Yes | Yes | Yes |
 
@@ -234,6 +235,13 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 ### Maintenance
 - [ ] Put a lab under maintenance (Section 7).
 - [ ] Try booking it → rejected as under maintenance.
+- [ ] A notification appears for students: "<room> is under maintenance (reason)".
+- [ ] Mark the room available again → students get a "back in service" notification.
+- [ ] Report a PC broken → students get "PC <n> in <room> is out of service".
+- [ ] Mark that PC fixed → students get "PC <n> in <room> is back in service".
+- [ ] Open **Facility Issues** as MIS/Admin → both lists show only open issues.
+- [ ] **Notify students** re-sends a reminder for that issue.
+- [ ] As a student, the bell badge increments within 30 seconds and the message is listed.
 
 ### Manage bookings
 - [ ] As admin, see all active reservations (pending/future); approve/reject and confirm status changes.
@@ -276,6 +284,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Edit the lab and change the coordinator.
 - [ ] Toggle whole-room maintenance with reason/date; booking is blocked.
 - [ ] Toggle an individual PC’s maintenance state.
+- [ ] **Facility Issues** lists the room and the PC, and both can be resolved there.
 - [ ] Delete a QA lab; deletion is blocked if reservations still reference it. Existing class entries keep their text room label but lose the room link.
 
 ### Analytics (admin/MIS)

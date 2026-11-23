@@ -259,6 +259,15 @@
     font-size: 13.5px;
 }
 
+.schedule-notice {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    font-size: 13.5px;
+}
+
 /* Buttons */
 .primary-btn,
 .ghost-btn,

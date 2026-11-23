@@ -4,6 +4,7 @@ import { PAGE_TITLES } from "./pageTitles.js"
 
 const Dashboard = lazy(() => import("../mainpage/Dashboard.jsx"))
 const LabManagement = lazy(() => import("../mainpage/LabManagement.jsx"))
+const FacilityIssues = lazy(() => import("../mainpage/FacilityIssues.jsx"))
 const Settings = lazy(() => import("../mainpage/Settings.jsx"))
 const ScheduleViewer = lazy(() => import("../mainpage/ScheduleViewer.jsx"))
 const SemesterSchedule = lazy(() => import("../mainpage/SemesterSchedule.jsx"))
@@ -95,6 +96,13 @@ export const ROUTES = [
         title: PAGE_TITLES.labManagement,
         component: LabManagement,
         roles: permissions.pages.labManagement
+    },
+    {
+        key: "facilityIssues",
+        path: "/admin/issues",
+        title: PAGE_TITLES.facilityIssues,
+        component: FacilityIssues,
+        roles: permissions.pages.facilityIssues
     },
     {
         key: "analytics",

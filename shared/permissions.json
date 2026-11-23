@@ -3,6 +3,7 @@
   "pages": {
     "dashboard": ["admin", "faculty", "mis_staff"],
     "labManagement": ["admin", "mis_staff"],
+    "facilityIssues": ["admin", "mis_staff"],
     "settings": ["student", "faculty", "admin", "mis_staff"],
     "labSchedule": ["student", "faculty", "admin", "mis_staff"],
     "classSchedule": ["student", "faculty", "admin", "mis_staff"],

@@ -14,6 +14,7 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - Comprehensive Reservation System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
 - Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
 - Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
+- Facility Issue Notifications: putting a room under maintenance or reporting a PC broken notifies every active student, and marks the issue resolved with a follow-up notice.
 - Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
@@ -33,7 +34,7 @@ Roles: `student`, `faculty`, `admin`, `mis_staff`.
 - `mis_staff` is the laboratory/room operations staff role — handles room schedules, labs, bookings, and analytics.
 
 - All signed-in users can view the **Class Schedule** and **University Calendar**.
-- `admin` and `mis_staff` can manage semesters, class schedule entries, the university calendar, laboratories, bookings, and analytics.
+- `admin` and `mis_staff` can manage semesters, class schedule entries, the university calendar, laboratories, facility issues, bookings, and analytics.
 - Only `admin` can create or revoke user account codes and manage user accounts.
 - `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.

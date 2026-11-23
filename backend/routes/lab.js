@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
+const { notifyRoles, NOTIFY_STUDENTS } = require("../lib/facilityNotify.js")
 
 const labWrite = requireCapability("labWrite")
 
@@ -136,16 +137,102 @@ router.put("/maintenance", requireAuth, labWrite, async (req, res) => {
     try {
         const reason = maintenance ? maintenanceReason : null
         const until = maintenance && maintenanceUntil ? maintenanceUntil : null
+        const nextState = Boolean(maintenance)
+
+        const current = await db.query(
+            "SELECT maintenance FROM rooms WHERE name = $1",
+            [roomName]
+        )
+        if (current.rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
+
+        const wasUnderMaintenance = current.rows[0].maintenance === true
 
         const { rowCount } = await db.query(
             `UPDATE rooms SET maintenance = $1, maintenance_reason = $2, maintenance_until = $3 WHERE name = $4`,
-            [Boolean(maintenance), reason, until, roomName]
+            [nextState, reason, until, roomName]
         )
         if (rowCount === 0) return res.status(404).json({ error: "Laboratory not found" })
-        res.json({ message: "Maintenance status updated successfully" })
+
+        let notified = 0
+        if (nextState !== wasUnderMaintenance) {
+            const message = nextState
+                ? `Facility notice: ${roomName} is under maintenance${reason ? ` (${reason})` : ""}${until ? `. Expected back on ${String(until).slice(0, 10)}` : ""}.`
+                : `Facility notice: ${roomName} is available again.`
+
+            notified = await notifyRoles(NOTIFY_STUDENTS, message)
+        }
+
+        res.json({ message: "Maintenance status updated successfully", notified })
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to update maintenance status" })
+    }
+})
+
+router.get("/issues", requireAuth, labWrite, async (req, res) => {
+    try {
+        const rooms = await db.query(`
+            SELECT id, name, location, maintenance_reason, maintenance_until
+            FROM rooms
+            WHERE maintenance = true
+            ORDER BY name ASC
+        `)
+        const computers = await db.query(`
+            SELECT computers.id,
+                   computers.pc_number,
+                   computers.maintenance_reason,
+                   computers.room_id,
+                   rooms.name AS room_name
+            FROM computers
+            JOIN rooms ON rooms.id = computers.room_id
+            WHERE computers.is_maintenance = true
+            ORDER BY rooms.name ASC, computers.pc_number ASC
+        `)
+
+        res.json({ rooms: rooms.rows, computers: computers.rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to retrieve facility issues" })
+    }
+})
+
+// Re-send a reminder for an issue that is still open.
+router.post("/issues/notify", requireAuth, labWrite, async (req, res) => {
+    const { type, id } = req.body
+    if (!["room", "computer"].includes(type) || !id) {
+        return res.status(400).json({ error: "Issue type and id are required" })
+    }
+
+    try {
+        let message = null
+
+        if (type === "room") {
+            const { rows } = await db.query(
+                "SELECT name, maintenance, maintenance_reason FROM rooms WHERE id = $1",
+                [id]
+            )
+            if (rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
+            if (!rows[0].maintenance) return res.status(409).json({ error: "This laboratory is not under maintenance" })
+
+            message = `Reminder: ${rows[0].name} is still under maintenance${rows[0].maintenance_reason ? ` (${rows[0].maintenance_reason})` : ""}.`
+        } else {
+            const { rows } = await db.query(`
+                SELECT computers.pc_number, computers.is_maintenance, computers.maintenance_reason, rooms.name AS room_name
+                FROM computers
+                JOIN rooms ON rooms.id = computers.room_id
+                WHERE computers.id = $1
+            `, [id])
+            if (rows.length === 0) return res.status(404).json({ error: "Computer not found" })
+            if (!rows[0].is_maintenance) return res.status(409).json({ error: "This computer is not out of service" })
+
+            message = `Reminder: PC ${rows[0].pc_number} in ${rows[0].room_name} is still out of service${rows[0].maintenance_reason ? ` (${rows[0].maintenance_reason})` : ""}.`
+        }
+
+        const notified = await notifyRoles(NOTIFY_STUDENTS, message)
+        res.json({ message: "Reminder sent", notified })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to send reminder" })
     }
 })
 
@@ -168,11 +255,37 @@ router.get("/get-computers", requireAuth, labWrite, async (req, res) => {
 router.put("/toggle-pc", requireAuth, labWrite, async (req, res) => {
     const { computerId, isMaintenance, maintenanceReason } = req.body
     try {
+        const { rows } = await db.query(`
+            SELECT computers.id,
+                   computers.pc_number,
+                   computers.is_maintenance,
+                   rooms.name AS room_name
+            FROM computers
+            JOIN rooms ON rooms.id = computers.room_id
+            WHERE computers.id = $1
+        `, [computerId])
+
+        if (rows.length === 0) return res.status(404).json({ error: "Computer not found" })
+
+        const computer = rows[0]
+        const nextState = Boolean(isMaintenance)
+        const reason = nextState ? (maintenanceReason || null) : null
+
         await db.query(
             "UPDATE computers SET is_maintenance = $1, maintenance_reason = $2 WHERE id = $3",
-            [Boolean(isMaintenance), maintenanceReason || null, computerId]
+            [nextState, reason, computerId]
         )
-        res.json({ message: "Computer status updated" })
+
+        let notified = 0
+        if (nextState !== (computer.is_maintenance === true)) {
+            const message = nextState
+                ? `Facility notice: PC ${computer.pc_number} in ${computer.room_name} is out of service${reason ? ` (${reason})` : ""}.`
+                : `Facility notice: PC ${computer.pc_number} in ${computer.room_name} is back in service.`
+
+            notified = await notifyRoles(NOTIFY_STUDENTS, message)
+        }
+
+        res.json({ message: "Computer status updated", notified })
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to update computer status" })

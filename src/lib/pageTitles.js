@@ -19,6 +19,7 @@ export const PAGE_TITLES = {
     inviteCodes: "User Account Codes",
     userManagement: "User Management",
     labManagement: "Laboratory Management",
+    facilityIssues: "Facility Issues",
     analytics: "Analytics Reports",
     settings: "Settings"
 }

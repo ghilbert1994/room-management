@@ -27,6 +27,7 @@ the sidebar label did not match the heading inside the page, and the app mixed
 | `/reservations/history` | Reservations | Reservation History |
 | `/admin/schedules` | Administration | Schedule Management |
 | `/admin/labs` | Administration | Laboratory Management |
+| `/admin/issues` | Administration | Facility Issues |
 | `/admin/users` | Administration | User Management |
 | `/admin/registration-codes` | Administration | User Account Codes |
 | `/admin/analytics` | Administration | Analytics Reports |
