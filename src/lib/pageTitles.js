@@ -16,7 +16,7 @@ export const PAGE_TITLES = {
     manageReservations: "Manage Reservations",
     reservationHistory: "Reservation History",
     scheduleManager: "Schedule Management",
-    inviteCodes: "Registration Codes",
+    inviteCodes: "User Account Codes",
     userManagement: "User Management",
     labManagement: "Laboratory Management",
     analytics: "Analytics Reports",

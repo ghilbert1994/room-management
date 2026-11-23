@@ -40,7 +40,7 @@ function InviteCodes() {
         try {
             const response = await fetch(`${API}/api/auth/invites`, { credentials: "include" })
             const data = await response.json()
-            if (!response.ok) throw new Error(data.message || "Failed to load registration codes")
+            if (!response.ok) throw new Error(data.message || "Failed to load user account codes")
             setInvites(data.invites)
         } catch (err) {
             setError(err.message)
@@ -73,7 +73,7 @@ function InviteCodes() {
                 })
             })
             const data = await response.json()
-            if (!response.ok) throw new Error(data.message || "Failed to create a registration code")
+            if (!response.ok) throw new Error(data.message || "Failed to create a user account code")
 
             setGeneratedCode(data.code)
             setForm(prev => ({ ...prev, label: "" }))
@@ -96,7 +96,7 @@ function InviteCodes() {
     }
 
     const revoke = async (invite) => {
-        if (!window.confirm(`Revoke this ${ROLE_LABELS[invite.role] || invite.role} registration code?`)) return
+        if (!window.confirm(`Revoke this ${ROLE_LABELS[invite.role] || invite.role} user account code?`)) return
 
         try {
             const response = await fetch(`${API}/api/auth/invites/${invite.id}/revoke`, {
@@ -117,7 +117,7 @@ function InviteCodes() {
                 <div>
                     <h1>{PAGE_TITLES.inviteCodes}</h1>
                     <p>
-                        Faculty, Admin, and MIS Staff need a one-time registration code.
+                        Faculty, Admin, and MIS Staff need a one-time user account code.
                         Students can register without one. Codes are stored hashed and can
                         be limited by uses and expiry.
                     </p>
@@ -218,7 +218,7 @@ function InviteCodes() {
                             <strong style={{ color: "var(--navy-900)" }}>Students</strong> register normally from the Register page.
                         </p>
                         <p style={{ margin: 0 }}>
-                            <strong style={{ color: "var(--navy-900)" }}>Faculty, Admin, and MIS Staff</strong> must enter a valid code during registration.
+                            <strong style={{ color: "var(--navy-900)" }}>Faculty, Admin, and MIS Staff</strong> must enter a valid user account code during registration.
                         </p>
                         <p style={{ margin: 0 }}>
                             Codes are hashed, so they cannot be recovered later. Generate a new one if a code is lost.
@@ -233,13 +233,13 @@ function InviteCodes() {
             <div className="schedule-card">
                 <div className="schedule-card-header">
                     <div>
-                        <h2>All Registration Codes</h2>
+                        <h2>All User Account Codes</h2>
                         <p>Only the code status is stored — never the plain code.</p>
                     </div>
                 </div>
 
                 {loading ? (
-                    <TableSkeleton rows={5} columns={7} label="Loading registration codes" />
+                    <TableSkeleton rows={5} columns={7} label="Loading user account codes" />
                 ) : invites.length === 0 ? (
                     <div className="schedule-empty">
                         <KeyRound size={32} color="#94a3b8" />

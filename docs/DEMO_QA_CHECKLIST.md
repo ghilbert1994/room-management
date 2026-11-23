@@ -59,8 +59,8 @@ There is no seeded MIS Staff account. Create one during Section 4.
 
 These passed in development during the restructure:
 
-- 32/32 API checks: health, login, persistent sessions, schedule CRUD, class overlap, booking/class conflict, DB double-booking protection, CSV import + rollback, registration codes, user management, role denials, student data redaction.
-- 13/13 MIS API checks and 14/14 MIS route/sidebar checks: MIS can manage schedules, labs, bookings, and analytics; blocked from Registration Codes and User Management.
+- 32/32 API checks: health, login, persistent sessions, schedule CRUD, class overlap, booking/class conflict, DB double-booking protection, CSV import + rollback, user account codes, user management, role denials, student data redaction.
+- 13/13 MIS API checks and 14/14 MIS route/sidebar checks: MIS can manage schedules, labs, bookings, and analytics; blocked from User Account Codes and User Management.
 - 9/9 class-cancellation checks: class blocks appear; another faculty gets 403; the assigned instructor cancels one date; the block disappears; the room becomes bookable; the date restores.
 - 7/7 booking UI checks: class blocks appear; class details open; cancel action is visible; cancellation notice appears; block disappears; class-conflict message is visible inside the form.
 - Lab Schedule Viewer shows class blocks in the weekly timetable and includes classes in the live lab status.
@@ -99,7 +99,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 | Manage Bookings (now Manage Reservations) | Yes | Yes | Yes | No |
 | Reservation History | Yes | Yes | Yes | No |
 | Manage Schedules | Yes | No | Yes | No |
-| Registration Codes | Yes | No | No | No |
+| User Account Codes | Yes | No | No | No |
 | User Management | Yes | No | No | No |
 | Lab Management | Yes | No | Yes | No |
 | Analytics Reports | Yes | No | Yes | No |
@@ -122,10 +122,10 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ---
 
-## 4. Registration codes and user management
+## 4. User account codes and user management
 
 ### Generate a code
-- [ ] Go to **Registration Codes**.
+- [ ] Go to **User Account Codes**.
 - [ ] Generate a **Faculty** code with max uses `1` and expiry `1` day.
 - [ ] The code is shown once (format `LCUP-FAC-XXXX-XXXX`); **Copy** works.
 - [ ] The code appears in the list as `active`.
@@ -141,7 +141,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### MIS Staff (room/lab operations)
 - [ ] Generate an **MIS Staff** code and register `mis.staff@example.com`.
-- [ ] Log in as MIS → dashboard, schedules, labs, bookings, and analytics; no Registration Codes or User Management.
+- [ ] Log in as MIS → dashboard, schedules, labs, bookings, and analytics; no User Account Codes or User Management.
 - [ ] MIS can open **Manage Schedules**, **Lab Management**, **Analytics Reports**, and **Manage Bookings**.
 - [ ] MIS is redirected away from `/admin/registration-codes` and `/admin/users`.
 
@@ -345,7 +345,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Student API call to update a booking status → `403`.
 - [ ] Faculty cannot manage an uncoordinated lab’s booking.
 - [ ] A different faculty cannot cancel another instructor’s class date → `403`.
-- [ ] MIS can create schedules/labs/bookings but gets `403` for user management and registration codes.
+- [ ] MIS can create schedules/labs/bookings but gets `403` for user management and user account codes.
 - [ ] Deactivated account’s existing session is invalidated.
 - [ ] Invalid role/date/time/room input returns `400`/`404`, not a crash.
 - [ ] Canceling a non-class weekday → `400`.
@@ -363,7 +363,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Cancel/delete QA bookings.
 - [ ] Restore any class dates canceled during testing, unless you want to leave them canceled.
 - [ ] If you imported the sample CSV only for QA, delete those class entries or leave them for the demo.
-- [ ] Revoke unused QA registration codes.
+- [ ] Revoke unused QA user account codes.
 - [ ] Leave demo seed data only if you want it for the presentation.
 - [ ] Log out.
 
@@ -375,9 +375,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 2. **Class Schedule** → semester/course/section filters + search + print.
 3. **University Calendar** → month view, event details, upcoming list.
 4. **Manage Schedules** → add a class, show the instructor dropdown, import CSV, add a calendar event.
-5. **Registration Codes** → generate a faculty code.
+5. **User Account Codes** → generate a faculty code.
 6. **User Management** → show roles, deactivate/reactivate, reset password.
-7. **MIS login** → operational pages; confirm Registration Codes and User Management are absent.
+7. **MIS login** → operational pages; confirm User Account Codes and User Management are absent.
 8. **Faculty login → Lab Reservation** → show class blocks, cancel one class date, book the freed slot, and show the class-conflict message inside the form.
 9. **Manage Bookings** → approve/reject the faculty booking and show the notification.
 10. **Lab Management** → add a lab with a coordinator, show maintenance blocking.

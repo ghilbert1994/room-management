@@ -28,7 +28,7 @@ the sidebar label did not match the heading inside the page, and the app mixed
 | `/admin/schedules` | Administration | Schedule Management |
 | `/admin/labs` | Administration | Laboratory Management |
 | `/admin/users` | Administration | User Management |
-| `/admin/registration-codes` | Administration | Registration Codes |
+| `/admin/registration-codes` | Administration | User Account Codes |
 | `/admin/analytics` | Administration | Analytics Reports |
 | `/settings` | System | Settings |
 

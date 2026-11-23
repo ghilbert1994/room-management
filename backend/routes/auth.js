@@ -125,14 +125,14 @@ router.post("/register", authLimiter, async (req, res) => {
         if (requestedRole !== "student") {
             if (!inviteCode) {
                 await client.query("ROLLBACK")
-                return res.status(400).json({ message: "A registration code is required for this role" })
+                return res.status(400).json({ message: "A user account code is required for this role" })
             }
 
             invite = await findInviteCode(client, requestedRole, inviteCode)
 
             if (!invite) {
                 await client.query("ROLLBACK")
-                return res.status(403).json({ message: "Invalid, expired, or already used registration code" })
+                return res.status(403).json({ message: "Invalid, expired, or already used user account code" })
             }
         }
 
@@ -202,7 +202,7 @@ router.get("/invites", requireAuth, requireCapability("inviteManage"), async (re
         })
     } catch (error) {
         console.error(error)
-        res.status(500).json({ message: "Failed to load registration codes" })
+        res.status(500).json({ message: "Failed to load user account codes" })
     }
 })
 
@@ -211,7 +211,7 @@ router.post("/invites", requireAuth, requireCapability("inviteManage"), async (r
     const targetRole = normalizeRole(role)
 
     if (!CODE_ROLES.includes(targetRole)) {
-        return res.status(400).json({ message: "Registration codes can only be created for faculty, admin, or MIS staff" })
+        return res.status(400).json({ message: "User account codes can only be created for faculty, admin, or MIS staff" })
     }
 
     const uses = Number(maxUses ?? 1)
@@ -240,13 +240,13 @@ router.post("/invites", requireAuth, requireCapability("inviteManage"), async (r
         )
 
         res.status(201).json({
-            message: "Registration code created",
+            message: "User account code created",
             code,
             invite: { ...rows[0], role: normalizeRole(rows[0].role), status: "active" }
         })
     } catch (error) {
         console.error(error)
-        res.status(500).json({ message: "Failed to create registration code" })
+        res.status(500).json({ message: "Failed to create user account code" })
     }
 })
 
@@ -261,13 +261,13 @@ router.post("/invites/:id/revoke", requireAuth, requireCapability("inviteManage"
         )
 
         if (rows.length === 0) {
-            return res.status(404).json({ message: "Registration code not found or already revoked" })
+            return res.status(404).json({ message: "User account code not found or already revoked" })
         }
 
-        res.json({ message: "Registration code revoked" })
+        res.json({ message: "User account code revoked" })
     } catch (error) {
         console.error(error)
-        res.status(500).json({ message: "Failed to revoke registration code" })
+        res.status(500).json({ message: "Failed to revoke user account code" })
     }
 })
 

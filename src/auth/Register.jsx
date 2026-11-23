@@ -142,7 +142,7 @@ function Register() {
 
                     {selectedRole?.needsCode && (
                         <div className="prompt-label-box">
-                            <label>Registration Code</label>
+                            <label>User Account Code</label>
                             <input
                                 type="text"
                                 required
@@ -152,7 +152,7 @@ function Register() {
                                 onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
                             />
                             <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)' }}>
-                                Ask the administrator for a code for this role.
+                                Ask the administrator for a user account code for this role.
                             </small>
                         </div>
                     )}

@@ -22,7 +22,7 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - Lab Schedule Viewer: the weekly timetable includes both reservations and semester class blocks; live lab status also considers scheduled classes.
 - Per-Date Class Cancellations: the assigned instructor, Admin, or MIS can cancel one class occurrence (e.g., instructor leave), which frees that room and date for booking.
 - University Master Calendar: Admin-managed holidays, exams, enrollment periods, and university events.
-- Registration Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
+- User Account Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
 - User Management: Admins can change roles, deactivate accounts, and issue temporary passwords.
 - Bulk Schedule Import: Paste or upload CSV to publish class schedules quickly.
 
@@ -34,8 +34,8 @@ Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
 - All signed-in users can view the **Class Schedule** and **University Calendar**.
 - `admin` and `mis_staff` can manage semesters, class schedule entries, the university calendar, laboratories, bookings, and analytics.
-- Only `admin` can create or revoke registration codes and manage user accounts.
-- `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a registration code generated from **Registration Codes**.
+- Only `admin` can create or revoke user account codes and manage user accounts.
+- `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
 
 ### Shared Permissions
