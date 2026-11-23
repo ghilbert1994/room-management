@@ -11,19 +11,19 @@
 }
 
 .table th {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 11.5px;
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    background-color: #f8fafc;
-    border-bottom: 1px solid var(--border, #e2e8f0);
+    background-color: var(--surface-muted);
+    border-bottom: 1px solid var(--border, var(--border));
 }
 
 .table td {
-    color: #334155;
+    color: var(--text-soft);
     font-size: 13.5px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--surface-muted);
 }
 
 .table tbody tr {
@@ -31,7 +31,7 @@
 }
 
 .table tbody tr:hover {
-    background-color: #f8fafc;
+    background-color: var(--surface-muted);
 }
 
 .table tbody tr:last-child td {

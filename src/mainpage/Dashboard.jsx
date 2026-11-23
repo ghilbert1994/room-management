@@ -10,6 +10,7 @@ import { UserContext } from '../auth/UserContext.jsx'
 import { normalizeRole } from '../auth/roles.js'
 import { PageSkeleton } from '../layout/Loading.jsx'
 import { notifyBookingsChanged, subscribeToDataChanges } from '../lib/dataEvents.js'
+import { PAGE_TITLES } from '../lib/pageTitles.js'
 
 function Dashboard() {
     const { user, labs } = useContext(UserContext)
@@ -122,7 +123,10 @@ function Dashboard() {
             <div className="dashboard-title">
                 <div className="dashboard-title-left">
                     <label>SYSTEMS STATUS: ONLINE</label>
-                    <h1>{isAdmin ? "IT Laboratory Overview" : isFaculty ? "Faculty Dashboard" : "MIS Dashboard"}</h1>
+                    <h1>{PAGE_TITLES.dashboard}</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '14px', fontWeight: '600' }}>
+                        {isAdmin ? "IT Laboratory Overview" : isFaculty ? "Faculty Overview" : "MIS Overview"}
+                    </p>
                 </div>
                 <div className="dashboard-title-right">
                     <button className="dashboard-title-date"> <Calendar size={16}/> {new Date().toLocaleDateString()} </button>
@@ -133,17 +137,17 @@ function Dashboard() {
                 
                 {/* STATS ROW */}
                 <Card className="dashboard-stats dashboard-bookings" columns={3}> 
-                    <div className="dashboard-stats-icon-wrapper icon-book"><Book size={32} color="#00195c"/></div>
-                    <div className="dashboard-stats-title-number"><p>Total Bookings</p><h2>{reservations.length}</h2></div>
+                    <div className="dashboard-stats-icon-wrapper icon-book"><Book size={32} style={{ color: 'var(--navy-900)' }}/></div>
+                    <div className="dashboard-stats-title-number"><p>Total Reservations</p><h2>{reservations.length}</h2></div>
                 </Card>
 
                 <Card className="dashboard-stats dashboard-reservationsr" columns={3}>
-                    <div className="dashboard-stats-icon-wrapper icon-calendar"> <CalendarArrowDownIcon size={32} color="#f5c542"/></div>
+                    <div className="dashboard-stats-icon-wrapper icon-calendar"> <CalendarArrowDownIcon size={32} style={{ color: 'var(--accent)' }}/></div>
                     <div className="dashboard-stats-title-number"><p> Active Reservations </p><h2> {approvedCount} </h2></div>
                 </Card>
 
                 <Card className="dashboard-stats dashboard-utilization" columns={3}>
-                    <div className="dashboard-stats-icon-wrapper icon-gauge"> <Clock size={32} color="#00195c"/></div>
+                    <div className="dashboard-stats-icon-wrapper icon-gauge"> <Clock size={32} style={{ color: 'var(--navy-900)' }}/></div>
                     <div className="dashboard-stats-title-number"><p> Pending Requests </p><h2> {totalPendingCount} </h2></div>
                 </Card>
 
@@ -155,7 +159,7 @@ function Dashboard() {
                 {/* CHARTS ROW */}
                 <Card columns={4} rows={2}>
                     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                        <h2 className="dashboard-barchart-title" style={{ marginTop: 0 }}> Bookings by Day </h2>
+                        <h2 className="dashboard-barchart-title" style={{ marginTop: 0 }}> Reservations by Day </h2>
                         <div style={{ flex: 1, minHeight: 0 }}>
                             <BarChart data={analytics.weeklyTrends} />
                         </div>
@@ -169,7 +173,7 @@ function Dashboard() {
                 </Card>
 
                 <Card columns={4} rows={2}>
-                    <h2 style={{ margin: '0 0 16px 0', color: '#00195c', fontSize: '18px' }}>Live Facility Status</h2>
+                    <h2 style={{ margin: '0 0 16px 0', color: 'var(--navy-900)', fontSize: '18px' }}>Live Facility Status</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -199,7 +203,7 @@ function Dashboard() {
 
                 {/* BOTTOM SECTION */}
                 <Card columns={12} rows={2}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', height: '100%' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '24px', height: '100%' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <h3 style={{ color: '#f59e0b', margin: 0, fontSize: '18px' }}>Action Required: Pending Approvals</h3>
@@ -213,28 +217,28 @@ function Dashboard() {
                                         onReject={handleReject} 
                                     />
                                 ) : (
-                                    <p style={{ color: '#64748b', margin: 0 }}>No pending requests at this time.</p>
+                                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>No pending requests at this time.</p>
                                 )}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid #e2e8f0', paddingLeft: '24px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h3 style={{ color: '#00195c', margin: 0, fontSize: '18px' }}>My Upcoming Bookings</h3>
+                                <h3 style={{ color: 'var(--navy-900)', margin: 0, fontSize: '18px' }}>My Upcoming Reservations</h3>
                             </div>
                             
                             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {myBookings.length === 0 ? (
-                                    <p style={{ color: '#64748b', margin: 0 }}>You have no upcoming lab reservations.</p>
+                                    <p style={{ color: 'var(--text-muted)', margin: 0 }}>You have no upcoming lab reservations.</p>
                                 ) : (
                                     myBookings.map(booking => (
-                                        <div key={booking.id} style={{ padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', borderLeft: '4px solid #00195c', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div key={booking.id} style={{ padding: '12px 16px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px', borderLeft: '4px solid var(--navy-900)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
-                                                <h4 style={{ margin: 0, color: '#00195c', fontSize: '15px' }}>{booking.room}</h4>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                                                <h4 style={{ margin: 0, color: 'var(--navy-900)', fontSize: '15px' }}>{booking.room}</h4>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                                                     <strong>When:</strong> {new Date(booking.start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                                                 </p>
-                                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                                                     <strong>Purpose:</strong> {booking.purpose}
                                                 </p>
                                             </div>
@@ -256,7 +260,7 @@ function Dashboard() {
                         </div>
                         
                         {maintenanceLabs.length === 0 ? (
-                            <p style={{ color: '#64748b', margin: 0 }}>All laboratories are currently operational.</p>
+                            <p style={{ color: 'var(--text-muted)', margin: 0 }}>All laboratories are currently operational.</p>
                         ) : (
                             <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '8px' }}>
                                 {maintenanceLabs.map(lab => (

@@ -8,6 +8,7 @@ import { UserContext } from "../auth/UserContext.jsx"
 import { normalizeRole } from "../auth/roles.js"
 import { formatClassBlocks } from "../lib/classBlocks.js"
 import { notifyBookingsChanged, notifyScheduleChanged, subscribeToDataChanges } from "../lib/dataEvents.js"
+import { useMediaQuery } from "../lib/useMediaQuery.js"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import { CalendarSkeleton } from "../layout/Loading.jsx"
 import "./Reservation.css"
@@ -53,15 +54,20 @@ function Reservation() {
     const [filterRoom, setFilterRoom] = useState("all")
 
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [currentView, setCurrentView] = useState(Views.WEEK)
+    const [currentView, setCurrentView] = useState(null)
+    const isNarrow = useMediaQuery("(max-width: 760px)")
+    // Phones open on a single day; the week grid is unreadable below ~760px.
+    const calendarView = currentView || (isNarrow ? Views.DAY : Views.WEEK)
 
     const [form, setForm] = useState({
         roomId: "",
         timeStart: "",
         timeEnd: "",
-        purpose: "",
+        purposeId: "",
+        purposeNotes: "",
         participants: ""
     })
+    const [purposes, setPurposes] = useState([])
 
     const fetchLabs = async () => {
         try {
@@ -108,6 +114,13 @@ function Reservation() {
         const loadData = async () => {
             const labsList = await fetchLabs()
             await fetchReservations(labsList)
+            try {
+                const response = await fetch(`${API_URL}/purposes`, { credentials: "include" })
+                const data = await response.json()
+                if (response.ok) setPurposes(data.purposes || [])
+            } catch {
+                setPurposes([])
+            }
         }
         loadData()
     }, [])
@@ -144,7 +157,8 @@ function Reservation() {
             roomId: filterRoom !== "all" ? filterRoom : "", 
             timeStart: formatDateTime(start),
             timeEnd: formatDateTime(adjustedEnd),
-            purpose: "",
+            purposeId: "",
+            purposeNotes: "",
             participants: ""
         })
         setError("")
@@ -192,8 +206,14 @@ function Reservation() {
         setError("")
 
         if (!user) return setFormError("You must be logged in to make a reservation")
-        if (!form.roomId || !form.timeStart || !form.timeEnd || !form.purpose || !form.participants) {
+        if (!form.roomId || !form.timeStart || !form.timeEnd || !form.purposeId || !form.participants) {
             return setFormError("Please fill in all required fields")
+        }
+
+        const selectedPurpose = purposes.find((purpose) => String(purpose.id) === String(form.purposeId))
+        if (!selectedPurpose) return setFormError("Please choose a valid purpose")
+        if (selectedPurpose.label === "Others" && !form.purposeNotes.trim()) {
+            return setFormError("Please describe the purpose when choosing Others")
         }
 
         const start = new Date(form.timeStart)
@@ -232,7 +252,8 @@ function Reservation() {
                     timeStart: form.timeStart,
                     timeEnd: form.timeEnd,
                     status: "pending",
-                    purpose: form.purpose,
+                    purposeId: Number(form.purposeId),
+                    purposeNotes: form.purposeNotes.trim(),
                     participants: Number(form.participants)
                 })
             })
@@ -241,7 +262,7 @@ function Reservation() {
             if (!response.ok) throw new Error(data.error || "Failed to add reservation")
 
             setShowAddModal(false)
-            setForm({ roomId: "", timeStart: "", timeEnd: "", purpose: "", participants: "" })
+            setForm({ roomId: "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
             setNotice("Reservation submitted. It is pending until a coordinator approves it.")
             await fetchReservations()
             notifyBookingsChanged()
@@ -322,12 +343,12 @@ function Reservation() {
         <div className="reservation-page">
             <div className="reservation-header">
                 <div>
-                    <h1>Lab Reservations</h1>
+                    <h1>Laboratory Reservation</h1>
                     <p>Reserve laboratory space for classes, meetings, or project work.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginRight: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)', marginRight: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ width: '10px', height: '10px', backgroundColor: '#16a34a', borderRadius: '2px' }}></span> Approved
                         </div>
@@ -338,14 +359,14 @@ function Reservation() {
                             <span style={{ width: '10px', height: '10px', backgroundColor: '#dc2626', borderRadius: '2px' }}></span> Rejected
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ width: '10px', height: '10px', backgroundColor: '#0d3a8f', border: '2px solid #f5c542', borderRadius: '2px' }}></span> Class Schedule
+                            <span style={{ width: '10px', height: '10px', backgroundColor: 'var(--navy-700)', border: '2px solid var(--accent)', borderRadius: '2px' }}></span> Class Schedule
                         </div>
                     </div>
 
                     <select 
                         value={filterRoom} 
                         onChange={(e) => setFilterRoom(e.target.value)}
-                        style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontWeight: 'bold', color: '#00195c', outline: 'none' }}
+                        style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontWeight: 'bold', color: 'var(--navy-900)', outline: 'none' }}
                     >
                         <option value="all">All Laboratories</option>
                         {labs.map(lab => (
@@ -357,10 +378,10 @@ function Reservation() {
                         setError("")
                         setFormError("")
                         setNotice("")
-                        setForm({ roomId: filterRoom !== "all" ? filterRoom : "", timeStart: "", timeEnd: "", purpose: "", participants: "" })
+                        setForm({ roomId: filterRoom !== "all" ? filterRoom : "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
                         setShowAddModal(true)
                     }}>
-                        Add Lab Reservation
+                        New Reservation
                     </button>
                 </div>
             </div>
@@ -383,7 +404,7 @@ function Reservation() {
                         endAccessor="end"
                         titleAccessor="title"
                         date={currentDate}
-                        view={currentView}
+                        view={calendarView}
                         onNavigate={(newDate) => setCurrentDate(newDate)}
                         onView={(newView) => setCurrentView(newView)}
                         views={["week", "day", "month"]}
@@ -398,17 +419,17 @@ function Reservation() {
                         eventPropGetter={(event) => ({
                             style: {
                                 backgroundColor: event.isClass
-                                    ? "#0d3a8f"
+                                    ? "var(--navy-700)"
                                     : event.status === "approved" ? "#16a34a" :
                                       event.status === "pending"   ? "#f59e0b" :
                                       event.status === "rejected"  ? "#dc2626" :
                                       event.status === "cancelled" ? "#6b7280" : "#2563eb",
                                 borderRadius: "4px",
                                 color: "white",
-                                border: event.isClass ? "2px solid #f5c542" : "none"
+                                border: event.isClass ? "2px solid var(--accent)" : "none"
                             }
                         })}
-                        style={{ height: 650 }}
+                        style={{ height: isNarrow ? 520 : 650 }}
                     />
                 )}
             </div>
@@ -417,7 +438,7 @@ function Reservation() {
                 <div className="reservation-modal-overlay" onClick={() => setSelectedReservation(null)}>
                     <div className="reservation-modal" onClick={(event) => event.stopPropagation()}>
                         <div className="reservation-modal-header">
-                            <h2>Lab Reservation Details</h2>
+                            <h2>Reservation Details</h2>
                             <button type="button" onClick={() => setSelectedReservation(null)}><X size={22} /></button>
                         </div>
 
@@ -427,6 +448,9 @@ function Reservation() {
                             <div className="reservation-detail"><span>Start</span><strong>{format(selectedReservation.start, "MMM d, yyyy h:mm a")}</strong></div>
                             <div className="reservation-detail"><span>End</span><strong>{format(selectedReservation.end, "MMM d, yyyy h:mm a")}</strong></div>
                             <div className="reservation-detail"><span>Purpose</span><strong>{selectedReservation.purpose || "N/A"}</strong></div>
+                            {selectedReservation.purpose_notes && (
+                                <div className="reservation-detail"><span>Notes</span><strong>{selectedReservation.purpose_notes}</strong></div>
+                            )}
                             <div className="reservation-detail"><span>Participants</span><strong>{selectedReservation.participants || "N/A"}</strong></div>
                             <div className="reservation-detail">
                                 <span>Status</span>
@@ -494,7 +518,7 @@ function Reservation() {
                 <div className="reservation-modal-overlay" onClick={closeAddModal}>
                     <div className="reservation-modal" onClick={(event) => event.stopPropagation()}>
                         <div className="reservation-modal-header">
-                            <h2>Add Lab Reservation</h2>
+                            <h2>Add Reservation</h2>
                             <button type="button" onClick={closeAddModal}><X size={22} /></button>
                         </div>
 
@@ -520,9 +544,30 @@ function Reservation() {
                                 </div>
 
                                 <div className="reservation-form-group">
-                                    <label htmlFor="purpose">Purpose of Reservation</label>
-                                    <input id="purpose" name="purpose" type="text" placeholder="e.g. Capstone Project Meeting" value={form.purpose} onChange={handleChange} required />
+                                    <label htmlFor="purposeId">Purpose of Reservation</label>
+                                    <select id="purposeId" name="purposeId" value={form.purposeId} onChange={handleChange} required>
+                                        <option value="">Select purpose</option>
+                                        {purposes.map((purpose) => (
+                                            <option key={purpose.id} value={purpose.id}>{purpose.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
+
+                                {purposes.find((purpose) => String(purpose.id) === String(form.purposeId))?.label === "Others" && (
+                                    <div className="reservation-form-group">
+                                        <label htmlFor="purposeNotes">Specify Purpose</label>
+                                        <input
+                                            id="purposeNotes"
+                                            name="purposeNotes"
+                                            type="text"
+                                            maxLength={500}
+                                            placeholder="Describe the purpose"
+                                            value={form.purposeNotes}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="reservation-form-group">
                                     <label htmlFor="participants">Number of Participants</label>

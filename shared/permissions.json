@@ -8,8 +8,9 @@
     "classSchedule": ["student", "faculty", "admin", "mis_staff"],
     "universityCalendar": ["student", "faculty", "admin", "mis_staff"],
     "analytics": ["admin", "mis_staff"],
-    "bookings": ["admin", "faculty", "mis_staff"],
-    "manageBookings": ["admin", "faculty", "mis_staff"],
+    "reservations": ["admin", "faculty", "mis_staff"],
+    "manageReservations": ["admin", "faculty", "mis_staff"],
+    "reservationHistory": ["admin", "faculty", "mis_staff"],
     "scheduleManager": ["admin", "mis_staff"],
     "inviteCodes": ["admin"],
     "userManagement": ["admin"]

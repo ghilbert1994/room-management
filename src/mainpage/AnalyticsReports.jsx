@@ -3,11 +3,16 @@ import Card from "./Card";
 import { PageSkeleton } from "../layout/Loading.jsx";
 import { Download } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { PAGE_TITLES } from '../lib/pageTitles.js'
+import { useTheme } from '../theme/themeContext.js'
+import { themeById } from '../lib/themes.js'
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts"
 
 function AnalyticsReports() {
+    const { theme } = useTheme()
+    const palette = themeById(theme)
     const [analytics, setAnalytics] = useState({
         totalBookings: 0,
         labUsage: [],
@@ -40,13 +45,13 @@ function AnalyticsReports() {
     const exportAnalytics = () => {
         const rows = [
             ["Metric", "Value"],
-            ["Total Approved Bookings", analytics.totalBookings],
+            ["Total Approved Reservations", analytics.totalBookings],
             ["Most Used Lab", topLab],
             [],
             ["Laboratory", "Usage %"],
             ...analytics.labUsage.map((item) => [item.name, item.value]),
             [],
-            ["Day", "Bookings"],
+            ["Day", "Reservations"],
             ...(analytics.weeklyTrends || []).map((item) => [item.day, item.bookings])
         ]
         const csv = rows
@@ -63,6 +68,13 @@ function AnalyticsReports() {
 
     return (
         <>
+            <div style={{ marginBottom: "8px" }}>
+                <label style={{ display: "block", fontSize: "11px", fontWeight: "800", letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                    Reports
+                </label>
+                <h1 style={{ margin: "4px 0 0", color: "var(--navy-900)", fontSize: "28px" }}>{PAGE_TITLES.analytics}</h1>
+            </div>
+
             <div className="analytics-control">
                 <div className="analytics-control-left">
                     <select><option value="">All Time</option></select>
@@ -76,7 +88,7 @@ function AnalyticsReports() {
             <div className="analytics-content">
                 <Card className="analytics-content-dash" columns={4}>
                     <div className="analytics-content-dash-title">
-                        <p>Total Approved Bookings</p>
+                        <p>Total Approved Reservations</p>
                         <span>All Time</span>
                     </div>
                     <h1>{analytics.totalBookings.toLocaleString()}</h1>
@@ -88,7 +100,7 @@ function AnalyticsReports() {
                         <p>Most Used Lab</p>
                     </div>
                     <h1 style={{fontSize: '24px'}}>{topLab}</h1>
-                    <p>Highest booking frequency</p>
+                    <p>Highest reservation frequency</p>
                 </Card>
 
                 <Card className="analytics-content-dash" columns={4}>
@@ -117,7 +129,7 @@ function AnalyticsReports() {
                             <XAxis dataKey="hour" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="bookings" fill="#041c59" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="bookings" fill={palette.brand} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </Card>

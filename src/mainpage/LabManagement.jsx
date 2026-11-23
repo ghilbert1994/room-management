@@ -7,6 +7,7 @@ import Modal from "../layout/Modal.jsx"
 import { useState, useContext, useEffect } from 'react'
 import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 
 function LabManagement() {
     const { labs, setLabs } = useContext(UserContext)
@@ -229,7 +230,7 @@ function LabManagement() {
             <div className="lab-management-title">
                 <div className="lab-management-title-left">
                     <label htmlFor="lab-management-title-text">Facility Overview</label>
-                    <h1 id="lab-management-title-text">Computer Laboratory Status</h1>
+                    <h1 id="lab-management-title-text">{PAGE_TITLES.labManagement}</h1>
                 </div>
                 <div className="lab-management-title-right">
                     <button className="lab-management-title-register" onClick={() => setShowModal(true)}>
@@ -301,15 +302,15 @@ function LabManagement() {
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '500px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <h2 style={{ margin: 0, color: '#00195c' }}>
+                            <h2 style={{ margin: 0, color: 'var(--navy-900)' }}>
                                 {selectedPC ? `Set PC ${selectedPC.pc_number} to Maintenance` : `PC Layout: ${activeLab?.name}`}
                             </h2>
                             <button onClick={() => { setShowPCModal(false); setSelectedPC(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', fontWeight: 'bold' }}>✕</button>
                         </div>
                         
                         {selectedPC ? (
-                            <form onSubmit={submitPCMaintenance} style={{ padding: '16px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-                                <p style={{ marginTop: 0, fontSize: '14px', color: '#64748b' }}>Why is PC {selectedPC.pc_number} broken?</p>
+                            <form onSubmit={submitPCMaintenance} style={{ padding: '16px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px' }}>
+                                <p style={{ marginTop: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Why is PC {selectedPC.pc_number} broken?</p>
                                 <input type="text" placeholder="Reason (e.g. Broken Monitor)" value={pcReason} onChange={(e) => setPcReason(e.target.value)} required style={{ width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }} />
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button type="button" onClick={() => setSelectedPC(null)} style={{ flex: 1, padding: '10px', border: '1px solid #ccc', backgroundColor: 'white', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
@@ -318,10 +319,10 @@ function LabManagement() {
                             </form>
                         ) : (
                             <>
-                                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Click a PC to toggle its status. Red PCs are under maintenance.</p>
+                                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Click a PC to toggle its status. Red PCs are under maintenance.</p>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
                                     {Array.isArray(computers) && computers.map(pc => (
-                                        <button type="button" key={pc.id} onClick={() => handlePCClick(pc)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 8px', borderRadius: '8px', cursor: 'pointer', border: pc.is_maintenance ? '2px solid #dc2626' : '2px solid #e2e8f0', backgroundColor: pc.is_maintenance ? '#f8d7da' : '#f8fafc', color: pc.is_maintenance ? '#dc2626' : '#334155' }}>
+                                        <button type="button" key={pc.id} onClick={() => handlePCClick(pc)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 8px', borderRadius: '8px', cursor: 'pointer', border: pc.is_maintenance ? '2px solid #dc2626' : '2px solid var(--border)', backgroundColor: pc.is_maintenance ? '#f8d7da' : 'var(--surface-muted)', color: pc.is_maintenance ? '#dc2626' : 'var(--text-soft)' }}>
                                             <Monitor size={24} />
                                             <p style={{ margin: '8px 0 0 0', fontSize: '12px', fontWeight: 'bold' }}>PC {pc.pc_number}</p>
                                             {pc.is_maintenance && <span style={{ fontSize: '9px', marginTop: '4px', textAlign: 'center' }}>{pc.maintenance_reason}</span>}
@@ -349,7 +350,7 @@ function LabManagement() {
                     </div>
                 </Card>
                 <Card className="lab-management-stats lab-management-utilization" columns={3}>
-                    <div className="lab-management-stats-icon-wrapper icon-person"><User2 size={32} color="#00195c"/></div>
+                    <div className="lab-management-stats-icon-wrapper icon-person"><User2 size={32} style={{ color: 'var(--navy-900)' }}/></div>
                     <div className="lab-management-stats-title-number">
                         <p>Seating Capacity</p>
                         <h2>{labs.reduce((total, lab) => total + Number(lab.capacity), 0)} Persons</h2>
@@ -383,7 +384,7 @@ function LabManagement() {
                                 </div>
                             </div>
 
-                            <p style={{ margin: '4px 0', fontSize: '13px', color: '#64748b' }}>
+                            <p style={{ margin: '4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
                                 <strong>Coordinator:</strong> {lab.coordinator_name || "None"}
                             </p>
 
@@ -401,7 +402,7 @@ function LabManagement() {
 
                             <button 
                                 onClick={() => openPCLayout(lab)}
-                                style={{marginTop: '10px', padding: '8px', backgroundColor: '#00195c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}
+                                style={{marginTop: '10px', padding: '8px', backgroundColor: 'var(--navy-900)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}
                             >
                                 View PC Layout
                             </button>

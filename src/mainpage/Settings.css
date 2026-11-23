@@ -18,7 +18,8 @@
 
 .settings-profile.card-container,
 .settings-security.card-container,
-.settings-account.card-container {
+.settings-account.card-container,
+.settings-appearance.card-container {
     padding: 24px;
 }
 
@@ -39,13 +40,13 @@
 
 .settings-card-title h2 {
     margin: 0;
-    color: #263c61;
+    color: var(--navy-800);
     font-size: 18px;
     font-weight: 800;
 }
 
 .settings-card-title svg {
-    color: #00195c;
+    color: var(--navy-900);
     flex-shrink: 0;
 }
 
@@ -58,7 +59,7 @@
     padding: 0 18px;
     border: 0;
     border-radius: 8px;
-    background-color: #00195c;
+    background-color: var(--navy-900);
     color: #ffffff;
     font-size: 13px;
     font-weight: 700;
@@ -67,7 +68,7 @@
 }
 
 .settings-card-title button:hover:not(:disabled) {
-    background-color: #0d3a8f;
+    background-color: var(--navy-700);
     transform: translateY(-1px);
 }
 
@@ -101,7 +102,7 @@
     border-radius: 50%;
     background-color: #eef2ff;
     border: 3px solid #dce2ec;
-    color: #00195c;
+    color: var(--navy-900);
 }
 
 .settings-avatar-caption {
@@ -109,7 +110,7 @@
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .settings-profile-fields {
@@ -153,13 +154,13 @@
 
 .settings-field input:focus {
     outline: none;
-    border-color: #0d3a8f;
+    border-color: var(--navy-700);
     box-shadow: 0 0 0 3px rgba(13, 58, 143, 0.12);
 }
 
 .settings-field input:disabled {
-    background-color: #f1f5f9;
-    color: #64748b;
+    background-color: var(--surface-muted);
+    color: var(--text-muted);
     cursor: not-allowed;
 }
 
@@ -176,7 +177,7 @@
     margin-top: 4px;
     border: 0;
     border-radius: 8px;
-    background-color: #00195c;
+    background-color: var(--navy-900);
     color: #ffffff;
     font-size: 14px;
     font-weight: 700;
@@ -185,7 +186,7 @@
 }
 
 .settings-submit:hover:not(:disabled) {
-    background-color: #0d3a8f;
+    background-color: var(--navy-700);
     transform: translateY(-1px);
 }
 
@@ -205,13 +206,13 @@
     display: flex;
     align-items: flex-start;
     gap: 11px;
-    color: #334155;
+    color: var(--text-soft);
     font-size: 14px;
     line-height: 1.45;
 }
 
 .settings-account-row > svg {
-    color: #00195c;
+    color: var(--navy-900);
     flex-shrink: 0;
     margin-top: 2px;
 }
@@ -219,11 +220,77 @@
 .settings-account-row strong {
     display: block;
     margin-bottom: 2px;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+}
+
+/* Appearance / accent theme selector */
+.settings-theme-current {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.settings-appearance-hint {
+    margin: 14px 0 0;
+    color: var(--text-muted);
+    font-size: 13.5px;
+}
+
+.settings-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    padding-top: 18px;
+}
+
+.settings-theme-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid #dbe2ec;
+    border-radius: 10px;
+    background-color: #ffffff;
+    color: var(--text-soft);
+    font-size: 13.5px;
+    font-weight: 700;
+    text-align: left;
+    transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.settings-theme-option:hover {
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+}
+
+.settings-theme-option.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+    color: var(--navy-900);
+}
+
+.settings-theme-swatch {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.settings-theme-label {
+    flex: 1;
+}
+
+.settings-theme-option > svg {
+    flex-shrink: 0;
+    color: var(--accent);
 }
 
 .settings-notice {

@@ -106,7 +106,7 @@ function Register() {
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
                         />
-                        <small style={{ display: 'block', marginTop: '4px', color: '#64748b' }}>
+                        <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)' }}>
                             At least 8 characters.
                         </small>
                     </div>
@@ -151,7 +151,7 @@ function Register() {
                                 value={inviteCode}
                                 onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
                             />
-                            <small style={{ display: 'block', marginTop: '4px', color: '#64748b' }}>
+                            <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)' }}>
                                 Ask the administrator for a code for this role.
                             </small>
                         </div>

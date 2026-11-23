@@ -85,19 +85,19 @@ function Navbar({ pageTitle, onMenuClick }) {
 
                     <div className="profile-container" ref={profileRef} onClick={() => { setShowProfileDropdown(!showProfileDropdown); setShowNotifDropdown(false); }}>
                         <div className="profile-info">
-                            <CircleUserRound size={32} color="#00195c" />
+                            <CircleUserRound size={32} style={{ color: 'var(--navy-900)' }} />
                             <div className="profile-text">
                                 <span className="profile-name">{user.name || "User"}</span>
                                 <span className="profile-role">{roleLabel.toUpperCase()}</span>
                             </div>
-                            <ChevronDown size={16} color="#64748b" />
+                            <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />
                         </div>
 
                         {showProfileDropdown && (
                             <div className="dropdown-menu profile-menu" style={{ padding: '16px', width: '240px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#00195c' }}>{user.name}</span>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>{user.email}</span>
+                                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--navy-900)' }}>{user.name}</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{user.email}</span>
                                     <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px', textTransform: 'uppercase', fontWeight: 'bold' }}>
                                         Role: {roleLabel}
                                     </span>
@@ -122,22 +122,22 @@ function Navbar({ pageTitle, onMenuClick }) {
                 <div className="modal-overlay" onClick={() => setShowHelpModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '400px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h2 style={{ margin: 0, color: '#00195c' }}>Need Help?</h2>
+                            <h2 style={{ margin: 0, color: 'var(--navy-900)' }}>Need Help?</h2>
                             <button onClick={() => setShowHelpModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Close help">
                                 <X size={20} />
                             </button>
                         </div>
                         
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: '#334155' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: 'var(--text-soft)' }}>
                             <p>If you are experiencing issues with LabEase, please reach out to the MIS Department.</p>
                             
-                            <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                <strong style={{ color: '#00195c', display: 'block', marginBottom: '4px' }}>Contact Support</strong>
+                            <div style={{ backgroundColor: 'var(--surface-muted)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <strong style={{ color: 'var(--navy-900)', display: 'block', marginBottom: '4px' }}>Contact Support</strong>
                                 <p style={{ margin: 0 }}>Email: mis.support@lcup.edu.ph</p>
                                 <p style={{ margin: '4px 0 0 0' }}>Phone: (044) 123-4567 local 123</p>
                             </div>
 
-                            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
                                 Version 1.0.0 | Capstone Project
                             </p>
                         </div>

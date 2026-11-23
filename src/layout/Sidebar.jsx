@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import './Sidebar.css'
 import logo from '../assets/logo.png'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
     LayoutDashboardIcon,
     LogOut,
@@ -15,33 +16,83 @@ import {
     ShieldCheck,
     KeyRound,
     Users,
+    History,
+    ChevronDown,
     X
 } from 'lucide-react'
 import { UserContext } from '../auth/UserContext.jsx'
-import { useContext } from 'react'
-import { normalizeRole, PAGE_ACCESS } from '../auth/roles.js'
+import { useContext, useEffect, useState } from 'react'
+import { normalizeRole } from '../auth/roles.js'
+import { ROUTES, routeByKey } from '../lib/routes.js'
+
+const ROUTE_ICONS = {
+    dashboard: LayoutDashboardIcon,
+    classSchedule: CalendarDays,
+    universityCalendar: CalendarRange,
+    labSchedule: Calendar,
+    reservations: BookIcon,
+    manageReservations: ClipboardList,
+    reservationHistory: History,
+    scheduleManager: ShieldCheck,
+    inviteCodes: KeyRound,
+    userManagement: Users,
+    labManagement: RobotArm,
+    analytics: ChartBar,
+    settings: Settings
+}
+
+// Sidebar navigation is grouped so 12 flat rows become 5 collapsible sections.
+// A group with a single visible page renders as a plain link (no chevron).
+const NAV_GROUPS = [
+    { id: "overview", label: "Overview", keys: ["dashboard"] },
+    { id: "schedules", label: "Schedules", keys: ["classSchedule", "labSchedule", "universityCalendar"] },
+    { id: "reservations", label: "Reservations", keys: ["manageReservations", "reservationHistory"] },
+    { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "inviteCodes", "userManagement", "analytics"] },
+    { id: "system", label: "System", keys: ["settings"] }
+]
+
+const STORAGE_KEY = "labease:sidebar-group"
+
+const readStoredGroup = () => {
+    try {
+        return window.localStorage.getItem(STORAGE_KEY)
+    } catch {
+        return null
+    }
+}
 
 function Sidebar({ isOpen = false, onClose }) {
     const { user, setUser } = useContext(UserContext)
     const navigate = useNavigate()
+    const { pathname } = useLocation()
     const role = normalizeRole(user?.role)
+    const [openGroupId, setOpenGroupId] = useState(readStoredGroup)
 
-    const canSee = (roles) => (roles || []).includes(role)
+    const visibleRoutes = (keys) =>
+        keys
+            .map((key) => routeByKey(key))
+            .filter((route) => route && (route.roles || []).includes(role))
 
-    const items = [
-        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon, roles: PAGE_ACCESS.dashboard },
-        { to: "/class-schedule", label: "Class Schedule", icon: CalendarDays, roles: PAGE_ACCESS.classSchedule },
-        { to: "/university-calendar", label: "University Calendar", icon: CalendarRange, roles: PAGE_ACCESS.universityCalendar },
-        { to: "/lab-schedule", label: "Lab Schedule", icon: Calendar, roles: PAGE_ACCESS.labSchedule },
-        { to: "/bookings", label: "Lab Reservation", icon: BookIcon, roles: PAGE_ACCESS.bookings },
-        { to: "/manage-bookings", label: "Manage Bookings", icon: ClipboardList, roles: PAGE_ACCESS.manageBookings },
-        { to: "/admin/schedules", label: "Manage Schedules", icon: ShieldCheck, roles: PAGE_ACCESS.scheduleManager },
-        { to: "/admin/registration-codes", label: "Registration Codes", icon: KeyRound, roles: PAGE_ACCESS.inviteCodes },
-        { to: "/admin/users", label: "User Management", icon: Users, roles: PAGE_ACCESS.userManagement },
-        { to: "/admin/labs", label: "Lab Management", icon: RobotArm, roles: PAGE_ACCESS.labManagement },
-        { to: "/admin/analytics", label: "Analytics Reports", icon: ChartBar, roles: PAGE_ACCESS.analytics },
-        { to: "/settings", label: "Settings", icon: Settings, roles: PAGE_ACCESS.settings }
-    ]
+    const activeKey = ROUTES.find((route) => route.path === pathname)?.key
+    const activeGroupId = NAV_GROUPS.find((group) => group.keys.includes(activeKey))?.id
+
+    // Keep the section that owns the current page expanded.
+    useEffect(() => {
+        if (activeGroupId) setOpenGroupId(activeGroupId)
+    }, [activeGroupId])
+
+    const toggleGroup = (groupId) => {
+        setOpenGroupId((current) => {
+            const next = current === groupId ? null : groupId
+            try {
+                if (next) window.localStorage.setItem(STORAGE_KEY, next)
+                else window.localStorage.removeItem(STORAGE_KEY)
+            } catch {
+                // Private mode / storage disabled: state still works for this session.
+            }
+            return next
+        })
+    }
 
     const handleLogout = async (event) => {
         event.preventDefault()
@@ -49,6 +100,23 @@ function Sidebar({ isOpen = false, onClose }) {
         setUser(null)
         navigate("/login", { replace: true })
     }
+
+    const renderLink = (route, grouped) => {
+        const Icon = ROUTE_ICONS[route.key] || LayoutDashboardIcon
+        return (
+            <li key={route.key}>
+                <NavLink
+                    to={route.path}
+                    onClick={onClose}
+                    className={({ isActive }) => `${isActive ? "active" : ""}${grouped ? " sidebar-sub-link" : ""}`}
+                >
+                    <Icon /> {route.title}
+                </NavLink>
+            </li>
+        )
+    }
+
+    const canCreateReservation = Boolean(routeByKey("reservations")?.roles.includes(role))
 
     return (
         <div className={`sidebar-container ${isOpen ? "sidebar-open" : ""}`}>
@@ -60,32 +128,47 @@ function Sidebar({ isOpen = false, onClose }) {
                 </button>
             </div>
 
-            <div className="sidebar-items">
+            <nav className="sidebar-items">
                 <ul>
-                    {items.filter((item) => canSee(item.roles)).map((item) => {
-                        const Icon = item.icon
+                    {NAV_GROUPS.map((group) => {
+                        const routes = visibleRoutes(group.keys)
+                        if (routes.length === 0) return null
+
+                        if (routes.length === 1) return renderLink(routes[0], false)
+
+                        const expanded = openGroupId === group.id
+                        const groupId = `sidebar-group-${group.id}`
+
                         return (
-                            <li key={item.to}>
-                                <NavLink
-                                    to={item.to}
-                                    onClick={onClose}
-                                    className={({ isActive }) => (isActive ? "active" : "")}
+                            <li key={group.id} className="sidebar-group">
+                                <button
+                                    type="button"
+                                    className="sidebar-group-toggle"
+                                    aria-expanded={expanded}
+                                    aria-controls={groupId}
+                                    onClick={() => toggleGroup(group.id)}
                                 >
-                                    <Icon /> {item.label}
-                                </NavLink>
+                                    <span>{group.label}</span>
+                                    <ChevronDown className="sidebar-group-chevron" size={15} />
+                                </button>
+                                {expanded && (
+                                    <ul id={groupId} className="sidebar-group-items">
+                                        {routes.map((route) => renderLink(route, true))}
+                                    </ul>
+                                )}
                             </li>
                         )
                     })}
                 </ul>
-            </div>
+            </nav>
 
             <div className="sidebar-bottom">
-                {canSee(PAGE_ACCESS.bookings) && (
+                {canCreateReservation && (
                     <NavLink className="new-booking" to="/bookings" onClick={onClose}>
-                        + New Lab Reservation
+                        + New Reservation
                     </NavLink>
                 )}
-                
+
                 <button className="logout" onClick={handleLogout}>
                     <LogOut size={18} />
                     Log Out

@@ -5,6 +5,7 @@ import { enUS } from "date-fns/locale"
 import { CalendarRange, MapPin, Clock, Info } from "lucide-react"
 import { CalendarSkeleton, ListSkeleton } from "../layout/Loading.jsx"
 import { subscribeToDataChanges } from "../lib/dataEvents.js"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "./Schedules.css"
 
@@ -18,7 +19,7 @@ const EVENT_TYPES = {
     exam: { label: "Examination", color: "#7c3aed" },
     enrollment: { label: "Enrollment", color: "#0891b2" },
     deadline: { label: "Deadline", color: "#d97706" },
-    other: { label: "Other", color: "#64748b" }
+    other: { label: "Other", color: "var(--text-muted)" }
 }
 
 const toDate = (value) => {
@@ -144,7 +145,7 @@ function MasterSchedule() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>University Calendar</h1>
+                    <h1>{PAGE_TITLES.universityCalendar}</h1>
                     <p>
                         The official master schedule for the whole university: school events,
                         holidays, examinations, enrollment periods, and deadlines.
@@ -206,7 +207,7 @@ function MasterSchedule() {
                                     <Info size={16} />
                                 </button>
                             </div>
-                            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5, color: "#334155" }}>
+                            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10, fontSize: 13.5, color: "var(--text-soft)" }}>
                                 <span><Clock size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />{formatEventRange(selected)}{!selected.all_day && selected.start_time ? ` · ${String(selected.start_time).slice(0, 5)}${selected.end_time ? `–${String(selected.end_time).slice(0, 5)}` : ""}` : ""}</span>
                                 {selected.location && (
                                     <span><MapPin size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />{selected.location}</span>

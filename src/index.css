@@ -7,14 +7,31 @@
     --navy-700: #0d3a8f;
     --navy-600: #1448a8;
 
-    --gold-400: #f5c542;
-    --gold-300: #ffd86b;
+    /* Brand surfaces (sidebar + app glow). Overridden per theme below. */
+    --brand-rgb: 7, 31, 92;
+    --sidebar-from: #071f5c;
+    --sidebar-mid: #061a4d;
+    --sidebar-to: #04123a;
+    --sidebar-glow-rgb: 37, 99, 235;
+
+    /* Accent theme tokens — overridden by [data-theme="..."] below.
+       Orange is the default; amber keeps the original yellow. */
+    --accent: #f97316;
+    --accent-light: #fdba74;
+    --accent-strong: #ea580c;
+    --accent-contrast: #071f5c;
+    --accent-rgb: 249, 115, 22;
+
+    /* Legacy names still referenced by older rules. */
+    --gold-400: var(--accent);
+    --gold-300: var(--accent-light);
 
     --bg: #f4f6fb;
     --surface: #ffffff;
     --surface-muted: #f8fafc;
 
     --text: #0f172a;
+    --text-soft: #334155;
     --text-muted: #64748b;
     --border: #e2e8f0;
     --border-strong: #cbd5e1;
@@ -40,6 +57,169 @@
     font-family: var(--font-sans);
 }
 
+/* ---------------------------------------------------------------------------
+   Themes (Settings → Appearance)
+
+   Each theme changes the whole identity, not just the accent:
+   the brand scale (sidebar, headings, primary buttons), the page tint,
+   the sidebar gradient, and the accent color.
+   Default (:root) = Navy + Orange.
+   --------------------------------------------------------------------------- */
+
+[data-theme="forest"] {
+    --navy-950: #03210f;
+    --navy-900: #04432a;
+    --navy-800: #065f3b;
+    --navy-700: #0b7a4a;
+    --navy-600: #12915d;
+
+    --brand-rgb: 4, 67, 42;
+    --sidebar-from: #04432a;
+    --sidebar-mid: #03351f;
+    --sidebar-to: #022617;
+    --sidebar-glow-rgb: 16, 185, 129;
+
+    --bg: #f2f8f4;
+
+    --accent: #f5c542;
+    --accent-light: #ffd86b;
+    --accent-strong: #d9a520;
+    --accent-contrast: #04210f;
+    --accent-rgb: 245, 197, 66;
+}
+
+[data-theme="plum"] {
+    --navy-950: #2a0a4a;
+    --navy-900: #4a1273;
+    --navy-800: #5b1a8f;
+    --navy-700: #6d28d9;
+    --navy-600: #7c3aed;
+
+    --brand-rgb: 74, 18, 115;
+    --sidebar-from: #4a1273;
+    --sidebar-mid: #3b0f5e;
+    --sidebar-to: #2a0a4a;
+    --sidebar-glow-rgb: 168, 85, 247;
+
+    --bg: #f8f4fc;
+
+    --accent: #f472b6;
+    --accent-light: #f9a8d4;
+    --accent-strong: #db2777;
+    --accent-contrast: #4a0f2e;
+    --accent-rgb: 244, 114, 182;
+}
+
+[data-theme="graphite"] {
+    --navy-950: #0b1120;
+    --navy-900: #1a2537;
+    --navy-800: #273449;
+    --navy-700: #334155;
+    --navy-600: #475569;
+
+    --brand-rgb: 26, 37, 55;
+    --sidebar-from: #1a2537;
+    --sidebar-mid: #131c2b;
+    --sidebar-to: #0b1120;
+    --sidebar-glow-rgb: 34, 211, 238;
+
+    --bg: #f2f5f8;
+
+    --accent: #22d3ee;
+    --accent-light: #67e8f9;
+    --accent-strong: #0891b2;
+    --accent-contrast: #06272b;
+    --accent-rgb: 34, 211, 238;
+}
+
+[data-theme="maroon"] {
+    --navy-950: #3b0a0a;
+    --navy-900: #671414;
+    --navy-800: #7f1d1d;
+    --navy-700: #991b1b;
+    --navy-600: #b91c1c;
+
+    --brand-rgb: 103, 20, 20;
+    --sidebar-from: #671414;
+    --sidebar-mid: #520f0f;
+    --sidebar-to: #3b0a0a;
+    --sidebar-glow-rgb: 239, 68, 68;
+
+    --bg: #fbf4f4;
+
+    --accent: #f5c542;
+    --accent-light: #ffd86b;
+    --accent-strong: #d9a520;
+    --accent-contrast: #3b0a0a;
+    --accent-rgb: 245, 197, 66;
+}
+
+[data-theme="ocean"] {
+    --navy-950: #04262b;
+    --navy-900: #0b4a52;
+    --navy-800: #0e5a63;
+    --navy-700: #0f766e;
+    --navy-600: #0d9488;
+
+    --brand-rgb: 11, 74, 82;
+    --sidebar-from: #0b4a52;
+    --sidebar-mid: #08383e;
+    --sidebar-to: #04262b;
+    --sidebar-glow-rgb: 45, 212, 191;
+
+    --bg: #f1f9f8;
+
+    --accent: #fb923c;
+    --accent-light: #fdba74;
+    --accent-strong: #ea580c;
+    --accent-contrast: #04262b;
+    --accent-rgb: 251, 146, 60;
+}
+
+[data-theme="midnight"] {
+    --navy-950: #020617;
+    --navy-900: #0f172a;
+    --navy-800: #172033;
+    --navy-700: #1e293b;
+    --navy-600: #334155;
+
+    --brand-rgb: 15, 23, 42;
+    --sidebar-from: #0f172a;
+    --sidebar-mid: #090f1e;
+    --sidebar-to: #020617;
+    --sidebar-glow-rgb: 139, 92, 246;
+
+    --bg: #f3f4f7;
+
+    --accent: #a78bfa;
+    --accent-light: #c4b5fd;
+    --accent-strong: #7c3aed;
+    --accent-contrast: #14082e;
+    --accent-rgb: 167, 139, 250;
+}
+
+[data-theme="cocoa"] {
+    --navy-950: #1c1210;
+    --navy-900: #3a251e;
+    --navy-800: #4a3128;
+    --navy-700: #5b3d31;
+    --navy-600: #6f4a3b;
+
+    --brand-rgb: 58, 37, 30;
+    --sidebar-from: #3a251e;
+    --sidebar-mid: #2b1b16;
+    --sidebar-to: #1c1210;
+    --sidebar-glow-rgb: 245, 158, 11;
+
+    --bg: #faf6f2;
+
+    --accent: #2dd4bf;
+    --accent-light: #5eead4;
+    --accent-strong: #0d9488;
+    --accent-contrast: #062b28;
+    --accent-rgb: 45, 212, 191;
+}
+
 *,
 *::before,
 *::after {
@@ -59,8 +239,8 @@ body {
     color: var(--text);
     background-color: var(--bg);
     background-image:
-        radial-gradient(circle at 88% -10%, rgba(37, 99, 235, 0.07), transparent 42%),
-        radial-gradient(circle at 6% 0%, rgba(245, 197, 66, 0.06), transparent 34%);
+        radial-gradient(circle at 88% -10%, rgba(var(--brand-rgb), 0.07), transparent 42%),
+        radial-gradient(circle at 6% 0%, rgba(var(--accent-rgb), 0.07), transparent 34%);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

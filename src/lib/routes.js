@@ -1,5 +1,6 @@
 import { lazy } from "react"
 import permissions from "../../shared/permissions.json"
+import { PAGE_TITLES } from "./pageTitles.js"
 
 const Dashboard = lazy(() => import("../mainpage/Dashboard.jsx"))
 const LabManagement = lazy(() => import("../mainpage/LabManagement.jsx"))
@@ -13,89 +14,99 @@ const UserManagement = lazy(() => import("../mainpage/UserManagement.jsx"))
 const AnalyticsReports = lazy(() => import("../mainpage/AnalyticsReports.jsx"))
 const Reservation = lazy(() => import("../mainpage/Reservation.jsx"))
 const BookingsManager = lazy(() => import("../mainpage/BookingsManager.jsx"))
+const ReservationHistory = lazy(() => import("../mainpage/ReservationHistory.jsx"))
 
+// `key` is both the sidebar grouping key and the permissions.json page key.
+// `title` is the one display name used by the navbar, the sidebar, and the page.
 export const ROUTES = [
     {
         key: "dashboard",
         path: "/dashboard",
-        title: "Dashboard",
+        title: PAGE_TITLES.dashboard,
         component: Dashboard,
         roles: permissions.pages.dashboard
     },
     {
         key: "classSchedule",
         path: "/class-schedule",
-        title: "Class Schedule",
+        title: PAGE_TITLES.classSchedule,
         component: SemesterSchedule,
         roles: permissions.pages.classSchedule
     },
     {
         key: "universityCalendar",
         path: "/university-calendar",
-        title: "University Calendar",
+        title: PAGE_TITLES.universityCalendar,
         component: MasterSchedule,
         roles: permissions.pages.universityCalendar
     },
     {
         key: "labSchedule",
         path: "/lab-schedule",
-        title: "Laboratory Schedule",
+        title: PAGE_TITLES.labSchedule,
         component: ScheduleViewer,
         roles: permissions.pages.labSchedule
     },
     {
-        key: "bookings",
+        key: "reservations",
         path: "/bookings",
-        title: "Lab Reservation",
+        title: PAGE_TITLES.reservations,
         component: Reservation,
-        roles: permissions.pages.bookings
+        roles: permissions.pages.reservations
     },
     {
-        key: "manageBookings",
+        key: "manageReservations",
         path: "/manage-bookings",
-        title: "Manage Bookings",
+        title: PAGE_TITLES.manageReservations,
         component: BookingsManager,
-        roles: permissions.pages.manageBookings
+        roles: permissions.pages.manageReservations
+    },
+    {
+        key: "reservationHistory",
+        path: "/reservations/history",
+        title: PAGE_TITLES.reservationHistory,
+        component: ReservationHistory,
+        roles: permissions.pages.reservationHistory
     },
     {
         key: "scheduleManager",
         path: "/admin/schedules",
-        title: "Manage Schedules",
+        title: PAGE_TITLES.scheduleManager,
         component: ScheduleManager,
         roles: permissions.pages.scheduleManager
     },
     {
         key: "inviteCodes",
         path: "/admin/registration-codes",
-        title: "Registration Codes",
+        title: PAGE_TITLES.inviteCodes,
         component: InviteCodes,
         roles: permissions.pages.inviteCodes
     },
     {
         key: "userManagement",
         path: "/admin/users",
-        title: "User Management",
+        title: PAGE_TITLES.userManagement,
         component: UserManagement,
         roles: permissions.pages.userManagement
     },
     {
         key: "labManagement",
         path: "/admin/labs",
-        title: "Lab Management",
+        title: PAGE_TITLES.labManagement,
         component: LabManagement,
         roles: permissions.pages.labManagement
     },
     {
         key: "analytics",
         path: "/admin/analytics",
-        title: "Analytics Reports",
+        title: PAGE_TITLES.analytics,
         component: AnalyticsReports,
         roles: permissions.pages.analytics
     },
     {
         key: "settings",
         path: "/settings",
-        title: "Settings",
+        title: PAGE_TITLES.settings,
         component: Settings,
         roles: permissions.pages.settings
     }
@@ -104,3 +115,5 @@ export const ROUTES = [
 export const defaultRouteForRole = (role) => (role === "student" ? "/class-schedule" : "/dashboard")
 
 export const routeByPath = (pathname) => ROUTES.find((route) => route.path === pathname)
+
+export const routeByKey = (key) => ROUTES.find((route) => route.key === key)

@@ -196,9 +196,9 @@ async function findReservationConflict({ roomId, dayOfWeek, startTime, endTime, 
     if (!roomId || !startsOn || !endsOn) return null
 
     const { rows } = await client.query(`
-        SELECT id, time_start, time_end, purpose
+        SELECT reservations.id, reservations.time_start, reservations.time_end
         FROM reservations
-        WHERE room_id = $1
+        WHERE reservations.room_id = $1
           AND status NOT IN ('rejected', 'cancelled')
           AND extract(isodow FROM time_start) = $2
           AND time_start::time < $4::time

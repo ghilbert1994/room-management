@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { KeyRound, Plus, Copy, Check, ShieldCheck, Ban } from "lucide-react"
 import { TableSkeleton } from "../layout/Loading.jsx"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "./Schedules.css"
 
 const API = ""
@@ -114,7 +115,7 @@ function InviteCodes() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>Registration Codes</h1>
+                    <h1>{PAGE_TITLES.inviteCodes}</h1>
                     <p>
                         Faculty, Admin, and MIS Staff need a one-time registration code.
                         Students can register without one. Codes are stored hashed and can
@@ -214,10 +215,10 @@ function InviteCodes() {
                     </div>
                     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 14, fontSize: 13.5, color: "#475569", lineHeight: 1.55 }}>
                         <p style={{ margin: 0 }}>
-                            <strong style={{ color: "#00195c" }}>Students</strong> register normally from the Register page.
+                            <strong style={{ color: "var(--navy-900)" }}>Students</strong> register normally from the Register page.
                         </p>
                         <p style={{ margin: 0 }}>
-                            <strong style={{ color: "#00195c" }}>Faculty, Admin, and MIS Staff</strong> must enter a valid code during registration.
+                            <strong style={{ color: "var(--navy-900)" }}>Faculty, Admin, and MIS Staff</strong> must enter a valid code during registration.
                         </p>
                         <p style={{ margin: 0 }}>
                             Codes are hashed, so they cannot be recovered later. Generate a new one if a code is lost.

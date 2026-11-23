@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { CalendarDays, Search, Clock, MapPin, User, GraduationCap, BookOpen, Printer } from "lucide-react"
 import { TableSkeleton } from "../layout/Loading.jsx"
 import { subscribeToDataChanges } from "../lib/dataEvents.js"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "./Schedules.css"
 
 const API = ""
@@ -133,7 +134,7 @@ function SemesterSchedule() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>Class Schedule</h1>
+                    <h1>{PAGE_TITLES.classSchedule}</h1>
                     <p>
                         Browse the official semester-based schedule. Search by course, section,
                         year level, subject, instructor, or room.
@@ -287,7 +288,7 @@ function SemesterSchedule() {
 
             {!loading && schedules.length > 0 && (
                 <div className="schedule-card-header" style={{ border: "none", background: "transparent", padding: "0 4px" }}>
-                    <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
                         <GraduationCap size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />
                         Showing {schedules.length} class{schedules.length === 1 ? "" : "es"}
                         {selectedSemester ? ` for ${semesterLabel(selectedSemester)}` : ""}.

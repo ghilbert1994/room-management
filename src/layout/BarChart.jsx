@@ -8,11 +8,16 @@ import {
     Tooltip,
     ResponsiveContainer
 } from 'recharts'
+import { useTheme } from '../theme/themeContext.js'
+import { themeById } from '../lib/themes.js'
 
 function BarChart({ data }) {
+    const { theme } = useTheme()
+    const palette = themeById(theme)
+
     if (!data || data.length === 0) {
         return (
-            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '14px' }}>
+            <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                 No data available yet
             </div>
         )
@@ -46,7 +51,7 @@ function BarChart({ data }) {
                     {data.map((entry, index) => (
                         <Cell
                             key={index}
-                            fill={index % 2 === 0 ? '#00195c' : '#f5c642'}
+                            fill={index % 2 === 0 ? palette.brand : palette.accent}
                         />
                     ))}
                 </Bar>

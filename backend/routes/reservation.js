@@ -54,23 +54,106 @@ const staffReservation = (reservation) => ({
     start: reservation.time_start,
     end: reservation.time_end,
     status: reservation.status,
-    purpose: reservation.purpose,
+    purpose: reservation.purpose_label || null,
+    purpose_id: reservation.purpose_id,
+    purpose_notes: reservation.purpose_notes || null,
     participants: reservation.participants,
+    created_at: reservation.created_at,
     user: reservation.user_name || reservation.user_email,
     coordinator_id: reservation.coordinator_id,
     coordinator_name: reservation.coordinator_name
 })
 
+// Controlled vocabulary for the purpose dropdown. Kept server-side so the
+// React form and the API validator cannot disagree (see migration 006).
+router.get("/purposes", requireAuth, async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT id, label, description
+            FROM reservation_purposes
+            WHERE is_active
+            ORDER BY sort_order, label
+        `)
+        res.json({ purposes: rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to retrieve reservation purposes" })
+    }
+})
+
+const asPurposeId = (value) => {
+    const id = Number(value)
+    return Number.isInteger(id) && id > 0 ? id : null
+}
+
+async function resolvePurpose(purposeId, client = db) {
+    const id = asPurposeId(purposeId)
+    if (!id) return null
+    const { rows } = await client.query(
+        "SELECT id, label FROM reservation_purposes WHERE id = $1 AND is_active",
+        [id]
+    )
+    return rows[0] || null
+}
+
+const cleanNotes = (value) => {
+    const text = String(value || "").trim()
+    return text === "" ? null : text.slice(0, 500)
+}
+
 router.get("/all", requireAuth, async (req, res) => {
     try {
+        const { scope, status, from, to } = req.query
+        const conditions = []
+        const params = []
+
+        // Stored reservation times are wall-clock Asia/Manila, so "now" is too.
+        // A reservation is archived once its lifecycle is finished: rejected,
+        // cancelled, or ended. Pending requests stay actionable even if their
+        // date has passed, which is why every row lands in exactly one scope.
+        if (scope === "active") {
+            conditions.push(`(
+                reservations.status not in ('rejected', 'cancelled', 'no_show')
+                and (
+                    reservations.status = 'pending'
+                    or reservations.time_end >= (now() at time zone 'Asia/Manila')::timestamp
+                )
+            )`)
+        } else if (scope === "history") {
+            conditions.push(`(
+                reservations.status in ('rejected', 'cancelled', 'no_show')
+                or (
+                    reservations.status <> 'pending'
+                    and reservations.time_end < (now() at time zone 'Asia/Manila')::timestamp
+                )
+            )`)
+        }
+
+        if (status && STATUS_VALUES.includes(status)) {
+            params.push(status)
+            conditions.push(`reservations.status = $${params.length}`)
+        }
+        if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) {
+            params.push(from)
+            conditions.push(`reservations.time_start >= $${params.length}::date`)
+        }
+        if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+            params.push(to)
+            conditions.push(`reservations.time_start < ($${params.length}::date + interval '1 day')`)
+        }
+
+        const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
         const { rows } = await db.query(`
             SELECT
                 reservations.id,
                 reservations.time_start,
                 reservations.time_end,
                 reservations.status,
-                reservations.purpose,
+                reservations.purpose_id,
+                reservations.purpose_notes,
                 reservations.participants,
+                reservations.created_at,
+                purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
                 rooms.coordinator_id,
@@ -82,8 +165,10 @@ router.get("/all", requireAuth, async (req, res) => {
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN users AS coord ON rooms.coordinator_id = coord.id
+            LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
+            ${where}
             ORDER BY reservations.time_start ASC
-        `)
+        `, params)
 
         const isStaff = req.user.role !== "student"
         const blocks = await db.query(`
@@ -141,8 +226,11 @@ router.get("/get", requireAuth, async (req, res) => {
                 reservations.time_start,
                 reservations.time_end,
                 reservations.status,
-                reservations.purpose,
+                reservations.purpose_id,
+                reservations.purpose_notes,
                 reservations.participants,
+                reservations.created_at,
+                purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
                 rooms.coordinator_id,
@@ -154,6 +242,7 @@ router.get("/get", requireAuth, async (req, res) => {
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN users AS coord ON rooms.coordinator_id = coord.id
+            LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             WHERE reservations.id = $1
         `, [id])
 
@@ -170,9 +259,9 @@ router.get("/get", requireAuth, async (req, res) => {
 })
 
 router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req, res) => {
-    const { roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
+    const { roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants } = req.body
 
-    if (!roomId || !reservedBy || !timeStart || !timeEnd || !purpose || !participants) {
+    if (!roomId || !reservedBy || !timeStart || !timeEnd || !purposeId || !participants) {
         return res.status(400).json({ error: "Room, user, start time, end time, purpose, and participants are required" })
     }
 
@@ -186,7 +275,7 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
     if (start >= end) return res.status(400).json({ error: "End time must be after start time" })
 
     if (req.user.role !== "admin" && String(reservedBy) !== String(req.user.id)) {
-        return res.status(403).json({ error: "You can only create bookings for yourself" })
+        return res.status(403).json({ error: "You can only create reservations for yourself" })
     }
 
     if (status && !STATUS_VALUES.includes(status)) {
@@ -194,6 +283,16 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
     }
 
     try {
+        const purpose = await resolvePurpose(purposeId)
+        if (!purpose) {
+            return res.status(400).json({ error: "Choose a valid reservation purpose" })
+        }
+
+        const notes = cleanNotes(purposeNotes)
+        if (purpose.label === "Others" && !notes) {
+            return res.status(400).json({ error: "Please describe the purpose when choosing Others" })
+        }
+
         const roomResult = await db.query(
             "SELECT id, name, maintenance, coordinator_id FROM rooms WHERE id = $1",
             [roomId]
@@ -227,20 +326,23 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
 
         const reservationStatus = status || "pending"
         const { rows } = await db.query(`
-            INSERT INTO reservations (time_start, time_end, reserved_by, room_id, status, purpose, participants)
-            VALUES ($1::timestamp, $2::timestamp, $3, $4, $5, $6, $7)
-            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose, participants
-        `, [start, end, reservedBy, roomId, reservationStatus, purpose, participants])
+            INSERT INTO reservations (time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants)
+            VALUES ($1::timestamp, $2::timestamp, $3, $4, $5, $6, $7, $8)
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants
+        `, [start, end, reservedBy, roomId, reservationStatus, purpose.id, notes, participants])
 
         const coordinatorId = roomResult.rows[0].coordinator_id
         if (coordinatorId) {
             await db.query(
                 "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
-                [coordinatorId, `New booking request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`]
+                [coordinatorId, `New reservation request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`]
             )
         }
 
-        res.status(201).json({ message: "Reservation created successfully", reservation: rows[0] })
+        res.status(201).json({
+            message: "Reservation created successfully",
+            reservation: { ...rows[0], purpose: purpose.label }
+        })
     } catch (error) {
         console.error(error)
         if (error.code === "23P01") return res.status(409).json({ error: "Laboratory is already reserved during this time" })
@@ -252,8 +354,8 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
 })
 
 router.put("/edit", requireAuth, async (req, res) => {
-    const { id, roomId, reservedBy, timeStart, timeEnd, status, purpose, participants } = req.body
-    if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status || !purpose || !participants) {
+    const { id, roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants } = req.body
+    if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status || !purposeId || !participants) {
         return res.status(400).json({ error: "All fields are required" })
     }
 
@@ -271,6 +373,16 @@ router.put("/edit", requireAuth, async (req, res) => {
     if (start >= end) return res.status(400).json({ error: "End time must be after start time" })
 
     try {
+        const purpose = await resolvePurpose(purposeId)
+        if (!purpose) {
+            return res.status(400).json({ error: "Choose a valid reservation purpose" })
+        }
+
+        const notes = cleanNotes(purposeNotes)
+        if (purpose.label === "Others" && !notes) {
+            return res.status(400).json({ error: "Please describe the purpose when choosing Others" })
+        }
+
         const reservationResult = await db.query(
             "SELECT id, reserved_by FROM reservations WHERE id = $1",
             [id]
@@ -280,7 +392,7 @@ router.put("/edit", requireAuth, async (req, res) => {
         const existing = reservationResult.rows[0]
         const isOwner = String(existing.reserved_by) === String(req.user.id)
         if (req.user.role !== "admin" && !isOwner) {
-            return res.status(403).json({ error: "You can only edit your own booking" })
+            return res.status(403).json({ error: "You can only edit your own reservation" })
         }
 
         const effectiveReservedBy = req.user.role === "admin" ? reservedBy : req.user.id
@@ -314,12 +426,15 @@ router.put("/edit", requireAuth, async (req, res) => {
         const { rows } = await db.query(`
             UPDATE reservations
             SET time_start = $1::timestamp, time_end = $2::timestamp, reserved_by = $3,
-                room_id = $4, status = $5, purpose = $6, participants = $7
-            WHERE id = $8
-            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose, participants
-        `, [start, end, effectiveReservedBy, roomId, status, purpose, participants, id])
+                room_id = $4, status = $5, purpose_id = $6, purpose_notes = $7, participants = $8
+            WHERE id = $9
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants
+        `, [start, end, effectiveReservedBy, roomId, status, purpose.id, notes, participants, id])
 
-        res.json({ message: "Reservation updated successfully", reservation: rows[0] })
+        res.json({
+            message: "Reservation updated successfully",
+            reservation: { ...rows[0], purpose: purpose.label }
+        })
     } catch (error) {
         console.error(error)
         if (error.code === "23P01") return res.status(409).json({ error: "Laboratory is already reserved during this time" })
@@ -351,20 +466,20 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
         const canManageAll = req.user.role === "admin" || req.user.role === "mis_staff"
 
         if (!canManageAll && String(coordinator_id) !== String(req.user.id)) {
-            return res.status(403).json({ error: "You can only manage bookings for laboratories you coordinate" })
+            return res.status(403).json({ error: "You can only manage reservations for laboratories you coordinate" })
         }
 
         await db.query("UPDATE reservations SET status = $1 WHERE id = $2::bigint", [status, id])
 
         await db.query(
             "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
-            [reserved_by, `Your booking for ${room_name} was ${status}.`]
+            [reserved_by, `Your reservation for ${room_name} was ${status}.`]
         )
 
         res.json({ message: `Reservation ${status}` })
     } catch (error) {
         console.error(error)
-        if (error.code === "23P01") return res.status(409).json({ error: "This change conflicts with another booking" })
+        if (error.code === "23P01") return res.status(409).json({ error: "This change conflicts with another reservation" })
         res.status(500).json({ error: "Failed to update status" })
     }
 })
@@ -389,7 +504,7 @@ router.delete("/delete", requireAuth, async (req, res) => {
             || String(user.id) === String(reservation.reserved_by)
 
         if (!canDelete) {
-            return res.status(403).json({ error: "You do not have permission to cancel this booking" })
+            return res.status(403).json({ error: "You do not have permission to cancel this reservation" })
         }
 
         await db.query("DELETE FROM reservations WHERE id = $1", [id])

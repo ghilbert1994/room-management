@@ -8,6 +8,8 @@ import "react-big-calendar/lib/css/react-big-calendar.css"
 import { CalendarSkeleton } from "../layout/Loading.jsx"
 import { formatClassBlocks } from "../lib/classBlocks.js"
 import { subscribeToDataChanges } from "../lib/dataEvents.js"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
+import { useMediaQuery } from "../lib/useMediaQuery.js"
 import "./ScheduleViewer.css"
 
 const locales = { "en-US": enUS }
@@ -35,7 +37,9 @@ function ScheduleViewer() {
     const [filterRoom, setFilterRoom] = useState("all")
     
     const [currentDate, setCurrentDate] = useState(new Date())
-    const [currentView, setCurrentView] = useState(Views.WEEK)
+    const [currentView, setCurrentView] = useState(null)
+    const isNarrow = useMediaQuery("(max-width: 760px)")
+    const calendarView = currentView || (isNarrow ? Views.DAY : Views.WEEK)
     const [refreshKey, setRefreshKey] = useState(0)
 
     useEffect(() => {
@@ -131,14 +135,14 @@ function ScheduleViewer() {
         <div className="schedule-viewer-container">
             <div className="schedule-viewer-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1>Laboratory Schedule Viewer</h1>
+                    <h1>{PAGE_TITLES.labSchedule}</h1>
                     <p>View real-time availability, live lab status, weekly reservations, and semester class blocks.</p>
                 </div>
 
                 <select 
                     value={filterRoom} 
                     onChange={(e) => setFilterRoom(e.target.value)}
-                    style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontWeight: 'bold', color: '#00195c', outline: 'none', cursor: 'pointer' }}
+                    style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontWeight: 'bold', color: 'var(--navy-900)', outline: 'none', cursor: 'pointer' }}
                 >
                     <option value="all">All Laboratories</option>
                     {labs.map(lab => (
@@ -148,14 +152,14 @@ function ScheduleViewer() {
             </div>
 
             <div style={{ marginTop: '20px' }}>
-                <h2 style={{ color: '#00195c', marginBottom: '16px', fontSize: '18px' }}>Live Laboratory Status</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                <h2 style={{ color: 'var(--navy-900)', marginBottom: '16px', fontSize: '18px' }}>Live Laboratory Status</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: '16px' }}>
                     {labStatuses.map(lab => (
-                        <div key={lab.id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div key={lab.id} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
-                                    <h3 style={{ margin: 0, color: '#00195c' }}>{lab.name}</h3>
-                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <h3 style={{ margin: 0, color: 'var(--navy-900)' }}>{lab.name}</h3>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <MapPin size={14} /> {lab.location}
                                     </p>
                                 </div>
@@ -188,17 +192,17 @@ function ScheduleViewer() {
                             ) : (
                                 <div style={{ backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
                                     <p style={{ margin: 0, fontWeight: 'bold' }}>Available for class</p>
-                                    <p style={{ margin: '4px 0 0 0' }}>No active bookings or classes right now.</p>
+                                    <p style={{ margin: '4px 0 0 0' }}>No active reservations or classes right now.</p>
                                 </div>
                             )}
 
                             {lab.nextClass && (
-                                <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#475569', borderTop: '1px solid #e2e8f0' }}>
-                                    <p style={{ margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', color: '#00195c' }}>
-                                        <CalendarClock size={14} /> Next Booking / Class
+                                <div style={{ backgroundColor: 'var(--surface-muted)', padding: '10px', borderRadius: '6px', fontSize: '12px', color: '#475569', borderTop: '1px solid var(--border)' }}>
+                                    <p style={{ margin: 0, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--navy-900)' }}>
+                                        <CalendarClock size={14} /> Next Reservation / Class
                                     </p>
                                     <p style={{ margin: '4px 0 0 0' }}>{formatNextClass(lab.nextClass.start)}</p>
-                                    <p style={{ margin: '2px 0 0 0', color: '#64748b' }}>{lab.nextClass.user}</p>
+                                    <p style={{ margin: '2px 0 0 0', color: 'var(--text-muted)' }}>{lab.nextClass.user}</p>
                                 </div>
                             )}
                         </div>
@@ -208,9 +212,9 @@ function ScheduleViewer() {
 
             <div className="schedule-viewer-timetable" style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginTop: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h2 style={{ color: '#00195c', margin: 0, fontSize: '18px' }}>Weekly Timetable</h2>
+                    <h2 style={{ color: 'var(--navy-900)', margin: 0, fontSize: '18px' }}>Weekly Timetable</h2>
                     
-                    <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ width: '12px', height: '12px', backgroundColor: '#16a34a', borderRadius: '3px' }}></span> Approved
                         </div>
@@ -221,7 +225,7 @@ function ScheduleViewer() {
                             <span style={{ width: '12px', height: '12px', backgroundColor: '#dc2626', borderRadius: '3px' }}></span> Rejected
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ width: '12px', height: '12px', backgroundColor: '#0d3a8f', border: '2px solid #f5c542', borderRadius: '3px' }}></span> Class Schedule
+                            <span style={{ width: '12px', height: '12px', backgroundColor: 'var(--navy-700)', border: '2px solid var(--accent)', borderRadius: '3px' }}></span> Class Schedule
                         </div>
                     </div>
                 </div>
@@ -236,7 +240,7 @@ function ScheduleViewer() {
                         endAccessor="end"
                         titleAccessor="title"
                         date={currentDate}
-                        view={currentView}
+                        view={calendarView}
                         onNavigate={(newDate) => setCurrentDate(newDate)}
                         onView={(newView) => setCurrentView(newView)}
                         views={["week", "day"]}
@@ -248,17 +252,17 @@ function ScheduleViewer() {
                         eventPropGetter={(event) => ({
                             style: {
                                 backgroundColor: event.isClass
-                                    ? "#0d3a8f"
+                                    ? "var(--navy-700)"
                                     : event.status === "approved" ? "#16a34a" :
                                       event.status === "pending"   ? "#f59e0b" :
                                       event.status === "rejected"  ? "#dc2626" :
                                       event.status === "cancelled" ? "#6b7280" : "#2563eb",
                                 borderRadius: "4px",
                                 color: "white",
-                                border: event.isClass ? "2px solid #f5c542" : "none"
+                                border: event.isClass ? "2px solid var(--accent)" : "none"
                             }
                         })}
-                        style={{ height: 600 }}
+                        style={{ height: isNarrow ? 480 : 600 }}
                     />
                 )}
             </div>

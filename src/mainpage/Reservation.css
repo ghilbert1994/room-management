@@ -26,7 +26,7 @@
 
 .reservation-add-button {
     border: none;
-    background: #041c59;
+    background: var(--navy-950);
     color: white;
     padding: 12px 20px;
     border-radius: 8px;
@@ -76,12 +76,12 @@
 }
 
 .rbc-toolbar button:hover {
-    background: #f8fafc;
+    background: var(--surface-muted);
 }
 
 .rbc-toolbar button.rbc-active {
-    background: #041c59;
-    border-color: #041c59;
+    background: var(--navy-950);
+    border-color: var(--navy-950);
     color: white;
 }
 
@@ -122,9 +122,9 @@
 .rbc-event {
     background: #eaf0ff;
     border: none;
-    border-left: 4px solid #041c59;
+    border-left: 4px solid var(--navy-950);
     border-radius: 6px;
-    color: #041c59;
+    color: var(--navy-950);
     padding: 6px 9px;
     cursor: pointer;
 }
@@ -148,7 +148,7 @@
 }
 
 .rbc-current-time-indicator {
-    background: #041c59;
+    background: var(--navy-950);
 }
 
 .rbc-off-range-bg {
@@ -246,12 +246,12 @@
 
 .reservation-form-group input:focus,
 .reservation-form-group select:focus {
-    border-color: #041c59;
+    border-color: var(--navy-950);
     box-shadow: 0 0 0 3px rgba(4, 28, 89, 0.08);
 }
 
 .reservation-form-group input:disabled {
-    background: #f8fafc;
+    background: var(--surface-muted);
     color: #6b7280;
     cursor: not-allowed;
 }
@@ -303,7 +303,7 @@
 
 .reservation-hint {
     margin: 0 0 12px;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 12.5px;
 }
 
@@ -364,12 +364,12 @@
 }
 
 .reservation-modal-footer button[type="button"]:hover {
-    background: #f8fafc;
+    background: var(--surface-muted);
 }
 
 .reservation-modal-footer button[type="submit"] {
     border: none;
-    background: #041c59;
+    background: var(--navy-950);
     color: white;
 }
 
@@ -390,9 +390,9 @@
     background: #991b1b;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
     .reservation-page {
-        padding: 20px;
+        padding: 20px 16px;
     }
 
     .reservation-calendar-card {
@@ -400,16 +400,53 @@
     }
 
     .reservation-header {
-        align-items: flex-start;
-        gap: 18px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
     }
 
-    .reservation-modal-content {
-        grid-template-columns: 1fr;
+    .reservation-header > div:last-child {
+        flex-wrap: wrap;
+        gap: 10px !important;
+    }
+
+    .reservation-header > div:last-child > div {
+        flex-wrap: wrap;
+        margin-right: 0 !important;
+        gap: 10px !important;
+    }
+
+    .reservation-add-button {
+        flex: 1 1 180px;
     }
 
     .rbc-toolbar {
         flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .rbc-toolbar-label {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 700px) {
+    .reservation-modal-content {
+        grid-template-columns: 1fr;
+    }
+
+    .reservation-modal {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .reservation-modal-footer {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+
+    .reservation-modal-footer button {
+        width: 100%;
     }
 }

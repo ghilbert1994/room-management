@@ -38,7 +38,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #00195c;
+    background-color: var(--navy-900);
     height: 50px;
     border-radius: 6px;
     color: white;
@@ -63,7 +63,7 @@
 }
 
 .lab-management-stats p {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.2px;
@@ -152,7 +152,7 @@
 }
 
 .lab-management-labcard-info-capacity-item h2 {
-    color: #00195c;
+    color: var(--navy-900);
 }
 
 .lab-management-labcard-info-diag {
@@ -193,4 +193,59 @@
 
 .lab-management-delete:active {
     background: #991b1b;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+   --------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+    .lab-management-content {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .lab-management-content > .card-container {
+        grid-column: span 3 !important;
+        grid-row: auto !important;
+    }
+}
+
+@media (max-width: 860px) {
+    .lab-management-title {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .lab-management-title-right {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .lab-management-title-filter {
+        width: auto;
+        padding: 0 16px;
+    }
+
+    .lab-management-title-register {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .lab-management-content {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .lab-management-content > .card-container {
+        grid-column: span 1 !important;
+    }
+
+    .lab-management-labcard-info-capacity {
+        gap: 10px;
+    }
+
+    .lab-management-labcard-info-capacity-item {
+        width: auto;
+        flex: 1;
+        padding: 12px;
+    }
 }

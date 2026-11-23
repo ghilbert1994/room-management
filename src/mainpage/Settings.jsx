@@ -1,15 +1,20 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { Save, User, Lock, Mail, Info, ShieldCheck } from 'lucide-react'
+import { Save, User, Lock, Mail, Info, ShieldCheck, Palette, Check } from 'lucide-react'
 import Card from './Card.jsx'
 import './Settings.css'
 import './Schedules.css'
 import { useState, useContext, useEffect } from 'react'
 import { UserContext } from '../auth/UserContext.jsx'
+import { useTheme } from '../theme/themeContext.js'
+import { themeById } from '../lib/themes.js'
 import { PageSkeleton } from '../layout/Loading.jsx'
 import { normalizeRole, ROLE_LABELS } from '../auth/roles.js'
+import { PAGE_TITLES } from '../lib/pageTitles.js'
 
 function Settings() {
     const { user, setUser } = useContext(UserContext)
+    const { theme, setTheme, themes } = useTheme()
+    const activeTheme = themeById(theme)
     
     const [name, setName] = useState("")
     const [saving, setSaving] = useState(false)
@@ -102,7 +107,7 @@ function Settings() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>System Settings</h1>
+                    <h1>{PAGE_TITLES.settings}</h1>
                     <p>Manage your profile, password, and account access.</p>
                 </div>
                 <div className="hero-meta">
@@ -112,6 +117,44 @@ function Settings() {
             </div>
 
             {notice && <div className={`settings-notice ${notice.type}`}>{notice.text}</div>}
+
+            <Card className="settings-appearance">
+                <div className="settings-card-title">
+                    <div>
+                        <Palette size={20} />
+                        <h2>Appearance</h2>
+                    </div>
+                    <span className="settings-theme-current">Theme: {activeTheme.label}</span>
+                </div>
+
+                <p className="settings-appearance-hint">
+                    Each theme restyles the sidebar, headings, buttons, page tint, and accent
+                    color together. It applies immediately and is remembered in this browser.
+                </p>
+
+                <div className="settings-theme-grid" role="radiogroup" aria-label="App theme">
+                    {themes.map((option) => {
+                        const selected = option.id === theme
+                        return (
+                            <button
+                                key={option.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                className={`settings-theme-option${selected ? " active" : ""}`}
+                                onClick={() => setTheme(option.id)}
+                            >
+                                <span
+                                    className="settings-theme-swatch"
+                                    style={{ background: `linear-gradient(135deg, ${option.brand} 0 55%, ${option.accent} 55% 100%)` }}
+                                />
+                                <span className="settings-theme-label">{option.label}</span>
+                                {selected && <Check size={16} />}
+                            </button>
+                        )
+                    })}
+                </div>
+            </Card>
 
             <div className="settings-content">
                 <div className="settings-content-main">

@@ -4,6 +4,7 @@ import { Check, Copy, KeyRound, Search, ShieldCheck, UserCog, Users } from "luci
 import { UserContext } from "../auth/UserContext.jsx"
 import { ROLE_LABELS, normalizeRole } from "../auth/roles.js"
 import { PageSkeleton } from "../layout/Loading.jsx"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "./Schedules.css"
 
 const ROLE_OPTIONS = ["student", "faculty", "mis_staff", "admin"]
@@ -110,7 +111,7 @@ function UserManagement() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>User Management</h1>
+                    <h1>{PAGE_TITLES.userManagement}</h1>
                     <p>
                         Review accounts, change roles, deactivate access, and issue temporary
                         passwords without touching the database.

@@ -51,7 +51,7 @@
 }
 
 .dashboard-stats p {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.2px;
@@ -107,7 +107,7 @@
 
 .dashboard-barchart-title {
     margin: 0;
-    color: #00195c;
+    color: var(--navy-900);
 }
 
 .dashboard-pending-reservation-title {
@@ -120,4 +120,55 @@
 .dashboard-conflict-log-title {
     color: #bb4044;
     margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+   --------------------------------------------------------------------------- */
+@media (max-width: 1200px) {
+    .dashboard-content {
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        grid-auto-rows: minmax(150px, auto);
+    }
+
+    .dashboard-content > .card-container {
+        grid-column: span 3 !important;
+        grid-row: auto !important;
+    }
+
+    /* charts and full-width panels */
+    .dashboard-content > .card-container:nth-child(n + 5) {
+        grid-column: span 6 !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .dashboard-content {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .dashboard-content > .card-container {
+        grid-column: span 1 !important;
+    }
+
+    .dashboard-content > .card-container:nth-child(n + 5) {
+        grid-column: span 2 !important;
+    }
+
+    .dashboard-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-content {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .dashboard-content > .card-container,
+    .dashboard-content > .card-container:nth-child(n + 5) {
+        grid-column: span 1 !important;
+    }
 }

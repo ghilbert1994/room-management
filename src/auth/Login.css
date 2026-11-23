@@ -1,6 +1,6 @@
 .login-page {
-    background-color: #0f2356;
-    background-image: radial-gradient(circle at top right, #1a357a, #0f2356);
+    background-color: var(--navy-950);
+    background-image: radial-gradient(circle at top right, var(--navy-800), var(--navy-950));
     display: flex;
     min-height: 100vh;
     align-items: center;
@@ -10,9 +10,8 @@
 }
 
 .login-container {
-    width: 40vw;
-    min-width: 400px;
-    max-width: 480px;
+    width: min(92vw, 480px);
+    min-width: 0;
     background-color: white;
     border-radius: 16px;
     display: flex;
@@ -20,11 +19,11 @@
     align-items: center;
     padding: 40px 0;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    border-top: 6px solid #ffc641; /* Gold accent */
+    border-top: 6px solid var(--accent); /* Accent bar */
 }
 
 #login-title {
-    color: #0d286d;
+    color: var(--navy-900);
     font-size: 26px;
     margin-bottom: 30px;
     font-weight: 700;
@@ -52,7 +51,7 @@
 
 .login-page label {
     font-weight: 600;
-    color: #334155;
+    color: var(--text-soft);
     font-size: 14px;
 }
 
@@ -74,8 +73,8 @@
     height: 48px;
     padding: 0 16px;
     border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background-color: #f8fafc;
+    border: 1px solid var(--border-strong);
+    background-color: var(--surface-muted);
     font-size: 14px;
     color: #1e293b;
     transition: all 0.2s ease;
@@ -84,9 +83,9 @@
 
 .prompt-box:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--navy-600);
     background-color: white;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 4px rgba(var(--brand-rgb), 0.15);
 }
 
 .form-options {
@@ -109,41 +108,41 @@
 .remember-me input {
     width: 16px;
     height: 16px;
-    accent-color: #00195c;
+    accent-color: var(--navy-900);
     cursor: pointer;
 }
 
 .login-page a {
     text-decoration: none;
-    color: #00195c;
+    color: var(--navy-900);
     font-size: 13px;
     font-weight: 600;
     transition: color 0.2s ease;
 }
 
 .login-page a:hover {
-    color: #3b82f6;
+    color: var(--navy-600);
 }
 
 .submit {
     width: 100%;
     height: 50px;
     border-radius: 8px;
-    background-color: #00195c;
+    background-color: var(--navy-900);
     color: white;
     font-weight: bold;
     font-size: 15px;
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 25, 92, 0.2);
+    box-shadow: 0 4px 12px rgba(var(--brand-rgb), 0.2);
     margin-top: 10px;
 }
 
 .submit:hover {
-    background-color: #002b8c;
+    background-color: var(--navy-800);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 25, 92, 0.3);
+    box-shadow: 0 6px 16px rgba(var(--brand-rgb), 0.3);
 }
 
 .submit:active {
@@ -164,5 +163,25 @@
     justify-content: center;
     margin-top: 15px;
     font-size: 13px;
-    color: #64748b;
+    color: var(--text-muted);
+}
+@media (max-width: 480px) {
+    .login-container {
+        padding: 28px 0;
+        border-radius: 14px;
+    }
+
+    #logo {
+        width: 64px;
+        height: 64px;
+    }
+
+    #login-title {
+        font-size: 22px;
+        margin-bottom: 22px;
+    }
+
+    .login-form {
+        width: calc(100% - 40px);
+    }
 }

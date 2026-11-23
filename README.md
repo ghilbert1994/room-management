@@ -11,7 +11,9 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 ## Key Features
 - Role-Based Access Control (RBAC): Distinct interfaces for Students, Faculty, MIS Staff, and Admins.
 - Coordinator Approval Workflow: Admins can assign Coordinators to specific labs; Coordinators approve or reject booking requests.
-- Comprehensive Booking System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
+- Comprehensive Reservation System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
+- Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
+- Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
 - Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
@@ -49,7 +51,19 @@ node migrations/run.js 001_add_roles.sql
 node migrations/run.js 002_schedules.sql
 node migrations/run.js 003_convert_teacher_role.sql
 node migrations/run.js 004_hardening.sql
+node migrations/run.js 005_class_cancellations.sql
+node migrations/run.js 006_reservation_purposes.sql
+# Only after the backend that reads reservation_purposes is deployed:
+node migrations/run.js 007_drop_legacy_purpose.sql
 ```
+
+`006_reservation_purposes.sql` is the normalization step for reservation
+purposes: it creates the lookup table, backfills existing text, and leaves the
+legacy column in place so the previous backend can still run during the deploy.
+`007_drop_legacy_purpose.sql` removes that duplicate column once the new backend
+is live. The design rationale is in `docs/DATABASE_NORMALIZATION.md`.
+
+Page naming and navigation rules are in `docs/UI_TERMINOLOGY.md`.
 
 `004_hardening.sql` adds the persistent `session` table, consistent id types, reservation overlap protection, room references for schedules, and missing indexes.
 

@@ -6,9 +6,13 @@ import {
 } from 'recharts'
 
 import './CircleChart.css'
+import { useTheme } from '../theme/themeContext.js'
+import { themeById } from '../lib/themes.js'
 
 function CircleChart({ data }) {
-    const colors = ['#041c59', '#ffc641', '#6b7280', '#3b82f6', '#16a34a']
+    const { theme } = useTheme()
+    const palette = themeById(theme)
+    const colors = [palette.brand, palette.accent, '#6b7280', '#3b82f6', '#16a34a']
 
     // Find the lab with the highest percentage for the center text
     const topLab = data.length > 0 ? data[0].name : "N/A"

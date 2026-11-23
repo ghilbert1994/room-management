@@ -1,11 +1,13 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useContext } from "react"
+import { Link } from "react-router-dom"
 import Card from "./Card"
-import { Check, X, Search, MapPin } from "lucide-react"
+import { Check, X, Search, MapPin, History } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import { normalizeRole } from "../auth/roles.js"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import { notifyBookingsChanged, subscribeToDataChanges } from "../lib/dataEvents.js"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 
 const parseLocal = (value) => {
     if (!value) return new Date()
@@ -28,7 +30,7 @@ function BookingsManager() {
 
     const fetchReservations = async () => {
         try {
-            const res = await fetch(`/api/reservation/all`, { credentials: "include" })
+            const res = await fetch(`/api/reservation/all?scope=active`, { credentials: "include" })
             if (res.ok) {
                 const data = await res.json()
                 setReservations(data.reservations)
@@ -86,11 +88,11 @@ function BookingsManager() {
             case 'approved': return { bg: '#dcfce7', text: '#166534' }
             case 'pending': return { bg: '#fef3c7', text: '#d97706' }
             case 'rejected': return { bg: '#fef2f2', text: '#dc2626' }
-            default: return { bg: '#f1f5f9', text: '#64748b' }
+            default: return { bg: 'var(--surface-muted)', text: 'var(--text-muted)' }
         }
     }
 
-    if (loading) return <PageSkeleton label="Loading bookings" stats={4} rows={6} columns={7} />
+    if (loading) return <PageSkeleton label="Loading reservations" stats={4} rows={6} columns={7} />
 
     return (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -98,15 +100,15 @@ function BookingsManager() {
             <div className="dashboard-title">
                 <div className="dashboard-title-left">
                     <label>{isTeacher ? "COORDINATOR HUB" : isMis ? "MIS COMMAND CENTER" : "ADMIN COMMAND CENTER"}</label>
-                    <h1 style={{ margin: 0 }}>{isTeacher ? "Review Lab Requests" : "Manage All Bookings"}</h1>
+                    <h1 style={{ margin: 0 }}>{PAGE_TITLES.manageReservations}</h1>
                     {isTeacher && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>Assigned Labs:</span>
+                            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Assigned Labs:</span>
                             {assignedLabs.length === 0 ? (
                                 <span style={{ fontSize: '13px', color: '#dc2626' }}>None</span>
                             ) : (
                                 assignedLabs.map(lab => (
-                                    <span key={lab.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: '#00195c', color: 'white', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+                                    <span key={lab.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: 'var(--navy-900)', color: 'white', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
                                         <MapPin size={12} /> {lab.name}
                                     </span>
                                 ))
@@ -114,13 +116,19 @@ function BookingsManager() {
                         </div>
                     )}
                 </div>
+                <Link
+                    to="/reservations/history"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '10px', backgroundColor: 'var(--navy-900)', color: '#ffffff', textDecoration: 'none', fontWeight: 'bold', fontSize: '13px' }}
+                >
+                    <History size={16} /> Reservation History
+                </Link>
             </div>
 
             <Card>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', gap: '16px', flexWrap: 'wrap' }}>
                     
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {['all', 'pending', 'approved', 'rejected'].map(status => (
+                        {['all', 'pending', 'approved'].map(status => (
                             <button 
                                 key={status}
                                 onClick={() => setFilter(status)}
@@ -131,8 +139,8 @@ function BookingsManager() {
                                     fontWeight: 'bold',
                                     cursor: 'pointer',
                                     textTransform: 'capitalize',
-                                    backgroundColor: filter === status ? '#00195c' : '#f1f5f9',
-                                    color: filter === status ? 'white' : '#64748b'
+                                    backgroundColor: filter === status ? 'var(--navy-900)' : 'var(--surface-muted)',
+                                    color: filter === status ? 'white' : 'var(--text-muted)'
                                 }}
                             >
                                 {status}
@@ -140,36 +148,36 @@ function BookingsManager() {
                         ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 12px', backgroundColor: '#f8fafc' }}>
-                        <Search size={18} color="#64748b" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--border-strong)', borderRadius: '8px', padding: '0 12px', backgroundColor: 'var(--surface-muted)' }}>
+                        <Search size={18} style={{ color: 'var(--text-muted)' }} />
                         <input 
                             type="text" 
                             placeholder="Search room or user..." 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            style={{ border: 'none', background: 'transparent', outline: 'none', height: '40px', width: '250px', color: '#334155' }}
+                            style={{ border: 'none', background: 'transparent', outline: 'none', height: '40px', width: '250px', color: 'var(--text-soft)' }}
                         />
                     </div>
                 </div>
 
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ padding: '12px', color: '#64748b' }}>Room</th>
-                                <th style={{ padding: '12px', color: '#64748b' }}>Reserved By</th>
-                                {!isTeacher && <th style={{ padding: '12px', color: '#64748b' }}>Coordinator</th>}
-                                <th style={{ padding: '12px', color: '#64748b' }}>Schedule</th>
-                                <th style={{ padding: '12px', color: '#64748b' }}>Details</th>
-                                <th style={{ padding: '12px', color: '#64748b' }}>Status</th>
-                                <th style={{ padding: '12px', color: '#64748b', textAlign: 'center' }}>Actions</th>
+                            <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Room</th>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Reserved By</th>
+                                {!isTeacher && <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Coordinator</th>}
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Schedule</th>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Details</th>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Status</th>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredReservations.length === 0 ? (
                                 <tr>
-                                    <td colSpan={!isTeacher ? 7 : 6} style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                                        No bookings found.
+                                    <td colSpan={!isTeacher ? 7 : 6} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                        No reservations found.
                                     </td>
                                 </tr>
                             ) : (
@@ -179,17 +187,17 @@ function BookingsManager() {
                                     const end = parseLocal(res.end)
 
                                     return (
-                                        <tr key={res.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '12px', fontWeight: 'bold', color: '#00195c' }}>{res.room}</td>
-                                            <td style={{ padding: '12px', color: '#334155' }}>{res.user}</td>
-                                            {!isTeacher && <td style={{ padding: '12px', color: '#64748b' }}>{res.coordinator_name || "None"}</td>}
+                                        <tr key={res.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
+                                            <td style={{ padding: '12px', fontWeight: 'bold', color: 'var(--navy-900)' }}>{res.room}</td>
+                                            <td style={{ padding: '12px', color: 'var(--text-soft)' }}>{res.user}</td>
+                                            {!isTeacher && <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{res.coordinator_name || "None"}</td>}
                                             <td style={{ padding: '12px', fontSize: '13px' }}>
-                                                <div style={{ color: '#334155', fontWeight: 'bold' }}>{start.toLocaleDateString()}</div>
-                                                <div style={{ color: '#64748b' }}>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                                <div style={{ color: 'var(--text-soft)', fontWeight: 'bold' }}>{start.toLocaleDateString()}</div>
+                                                <div style={{ color: 'var(--text-muted)' }}>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                                             </td>
                                             <td style={{ padding: '12px', fontSize: '13px' }}>
-                                                <div style={{ color: '#334155' }}><strong>Purpose:</strong> {res.purpose}</div>
-                                                <div style={{ color: '#64748b' }}><strong>Pax:</strong> {res.participants}</div>
+                                                <div style={{ color: 'var(--text-soft)' }}><strong>Purpose:</strong> {res.purpose}{res.purpose_notes ? ` — ${res.purpose_notes}` : ""}</div>
+                                                <div style={{ color: 'var(--text-muted)' }}><strong>Pax:</strong> {res.participants}</div>
                                             </td>
                                             <td style={{ padding: '12px' }}>
                                                 <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', backgroundColor: colors.bg, color: colors.text, textTransform: 'capitalize' }}>

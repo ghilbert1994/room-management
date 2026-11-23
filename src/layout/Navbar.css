@@ -25,7 +25,7 @@
 }
 
 .navbar-left h1 {
-    color: #00195c;
+    color: var(--navy-900);
     font-size: 20px;
     margin: 0;
     font-weight: 800;
@@ -42,8 +42,8 @@
     height: 38px;
     border: none;
     border-radius: 9px;
-    background: #f1f5f9;
-    color: #00195c;
+    background: var(--surface-muted);
+    color: var(--navy-900);
     cursor: pointer;
 }
 
@@ -58,8 +58,8 @@
     align-items: center;
     gap: 8px;
     position: relative;
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background-color: var(--surface-muted);
+    border: 1px solid var(--border);
     border-radius: 20px;
     padding: 0 16px;
     height: 40px;
@@ -81,7 +81,7 @@
     background: transparent;
     outline: none;
     font-size: 14px;
-    color: #334155;
+    color: var(--text-soft);
     width: 200px;
 }
 
@@ -104,7 +104,7 @@
 }
 
 .nav-icon-btn:hover {
-    background-color: #f1f5f9;
+    background-color: var(--surface-muted);
 }
 
 .notif-dot {
@@ -127,7 +127,7 @@
 .nav-divider {
     width: 1px;
     height: 24px;
-    background-color: #e2e8f0;
+    background-color: var(--border);
 }
 
 .profile-container {
@@ -139,7 +139,7 @@
 }
 
 .profile-container:hover {
-    background-color: #f1f5f9;
+    background-color: var(--surface-muted);
 }
 
 .profile-info {
@@ -156,13 +156,13 @@
 .profile-name {
     font-size: 14px;
     font-weight: 600;
-    color: #00195c;
+    color: var(--navy-900);
     line-height: 1.2;
 }
 
 .profile-role {
     font-size: 11px;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
@@ -174,7 +174,7 @@
     background-color: white;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     z-index: 1001;
     overflow: hidden;
     animation: fadeIn 0.15s ease-out;
@@ -191,10 +191,10 @@
 
 .dropdown-header {
     padding: 16px;
-    background-color: #f8fafc;
+    background-color: var(--surface-muted);
     font-weight: 700;
-    color: #00195c;
-    border-bottom: 1px solid #e2e8f0;
+    color: var(--navy-900);
+    border-bottom: 1px solid var(--border);
 }
 
 .dropdown-list {
@@ -211,7 +211,7 @@
 
 .notif-item {
     padding: 16px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--surface-muted);
     transition: background 0.2s;
 }
 
@@ -226,7 +226,7 @@
 .notif-message {
     margin: 0;
     font-size: 13px;
-    color: #334155;
+    color: var(--text-soft);
     line-height: 1.4;
 }
 
@@ -252,13 +252,13 @@
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
-    color: #334155;
+    color: var(--text-soft);
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .profile-menu button:hover {
-    background-color: #f1f5f9;
+    background-color: var(--surface-muted);
 }
 
 .profile-menu button.logout-btn {
@@ -271,7 +271,7 @@
 
 .menu-divider {
     height: 1px;
-    background-color: #e2e8f0;
+    background-color: var(--border);
     margin: 6px 0;
 }
 

@@ -3,6 +3,13 @@
 Use this for a client demo, a defense rehearsal, or a regression pass.
 It is a procedure, not a script to execute.
 
+> **Naming update:** "Lab Schedule" is now **Laboratory Schedule**, "Lab
+> Reservation" is **Laboratory Reservation**, "Manage Bookings" is **Manage
+> Reservations**, and "Lab Management" is **Laboratory Management**. The sidebar
+> is grouped into Overview / Schedules / Reservations / Administration / System.
+> Old labels below are kept as historical wording; the routes are unchanged.
+> See `docs/UI_TERMINOLOGY.md`.
+
 **Local URLs**
 - Frontend: http://localhost:4000
 - Backend: http://localhost:3000
@@ -89,7 +96,8 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 | University Calendar | Yes | Yes | Yes | Yes |
 | Lab Schedule | Yes | Yes | Yes | Yes |
 | Lab Reservation | Yes | Yes | Yes | No |
-| Manage Bookings | Yes | Yes | Yes | No |
+| Manage Bookings (now Manage Reservations) | Yes | Yes | Yes | No |
+| Reservation History | Yes | Yes | Yes | No |
 | Manage Schedules | Yes | No | Yes | No |
 | Registration Codes | Yes | No | No | No |
 | User Management | Yes | No | No | No |
@@ -228,11 +236,26 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Try booking it → rejected as under maintenance.
 
 ### Manage bookings
-- [ ] As admin, see all bookings; approve/reject and confirm status changes.
+- [ ] As admin, see all active reservations (pending/future); approve/reject and confirm status changes.
 - [ ] As faculty, only see bookings for labs you coordinate.
 - [ ] Faculty cannot change bookings for labs they do not coordinate.
 - [ ] Status changes create a notification for the booking owner.
 - [ ] Approving/rejecting updates the Dashboard counters and other open booking tabs without a manual refresh.
+
+### Purpose dropdown (controlled vocabulary)
+- [ ] Add Reservation → **Purpose of Reservation** is a dropdown, not a text field.
+- [ ] The options match `select label from reservation_purposes order by sort_order`.
+- [ ] Choosing **Others** reveals a required **Specify Purpose** field.
+- [ ] Submitting with no purpose, or with Others left blank, is rejected.
+- [ ] The purpose appears with its note in Reservation Details, Manage Reservations, and Reservation History.
+
+### Reservation History
+- [ ] **Reservations → Reservation History** opens `/reservations/history`.
+- [ ] Rejected, cancelled, and ended reservations appear there, newest first.
+- [ ] Pending requests stay in Manage Reservations even if their date passed.
+- [ ] Filter by status, laboratory, date range, and search; Reset clears all filters.
+- [ ] **Export CSV** downloads the currently filtered rows.
+- [ ] Faculty only see history for labs they coordinate.
 
 ### Live refresh
 - [ ] Open **Class Schedule** and **Lab Reservation** in two tabs.

@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck,
 import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import { notifyScheduleChanged } from "../lib/dataEvents.js"
+import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "./Schedules.css"
 
 const API = ""
@@ -482,7 +483,7 @@ function ScheduleManager() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>Manage Schedules</h1>
+                    <h1>{PAGE_TITLES.scheduleManager}</h1>
                     <p>
                         Publish the semester-based class schedule and the university-wide master
                         calendar. Only administrators can create, edit, or delete entries.
@@ -1041,7 +1042,7 @@ function ScheduleManager() {
                 <div className="schedule-form">
                     {importError && <div className="form-error">{importError}</div>}
 
-                    <p style={{ margin: 0, fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
                         Header row: <code>course, year_level, section, subject_code, subject, instructor, day, start_time, end_time, room</code>.
                         Day can be 1–7 or a weekday name. Room can be the laboratory name or id.
                     </p>
