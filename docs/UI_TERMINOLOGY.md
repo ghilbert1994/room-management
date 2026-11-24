@@ -27,7 +27,7 @@ the sidebar label did not match the heading inside the page, and the app mixed
 | `/reservations/history` | Reservations | Reservation History |
 | `/admin/schedules` | Administration | Schedule Management |
 | `/admin/labs` | Administration | Laboratory Management |
-| `/admin/issues` | Administration | Facility Issues |
+| `/facility-issues` | Facilities | Facility Issues |
 | `/admin/users` | Administration | User Management |
 | `/admin/registration-codes` | Administration | User Account Codes |
 | `/admin/analytics` | Administration | Analytics Reports |
@@ -53,7 +53,8 @@ Twelve flat sidebar rows became five sections:
 - **Schedules** — Class Schedule, Laboratory Schedule, University Calendar
 - **Reservations** — Manage Reservations, Reservation History (plus the
   "+ New Reservation" button in the sidebar footer)
-- **Administration** — Schedule Management, Laboratory Management, Registration
+- **Facilities** — Facility Issues (staff manage, faculty report)
+- **Administration** — Schedule Management, Laboratory Management, User Account
   Codes, User Management, Analytics Reports
 - **System** — Settings
 
@@ -79,3 +80,12 @@ src/lib/pageTitles.js   →  PAGE_TITLES[key]
 ```
 
 Adding or renaming a page means editing `pageTitles.js` and `routes.js` only.
+
+## Role-specific navigation
+
+- **Admin** — every page, grouped into the five sections above.
+- **Faculty** — Dashboard, Schedules, Reservations, Facility Issues (report form), Settings.
+- **MIS staff** — only Facility Issues, Laboratory Management, and Settings. Because
+  each of those is a single-page group, they render as plain links with no
+  dropdown headers.
+- **Student** — Class Schedule, Laboratory Schedule, University Calendar, Settings.

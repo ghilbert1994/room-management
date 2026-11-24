@@ -60,7 +60,7 @@ There is no seeded MIS Staff account. Create one during Section 4.
 These passed in development during the restructure:
 
 - 32/32 API checks: health, login, persistent sessions, schedule CRUD, class overlap, booking/class conflict, DB double-booking protection, CSV import + rollback, user account codes, user management, role denials, student data redaction.
-- 13/13 MIS API checks and 14/14 MIS route/sidebar checks: MIS can manage schedules, labs, bookings, and analytics; blocked from User Account Codes and User Management.
+- 13/13 MIS API checks and 14/14 MIS route/sidebar checks: MIS can manage labs and facility issues only; no schedules, analytics, or reservation pages, and blocked from User Account Codes and User Management.
 - 9/9 class-cancellation checks: class blocks appear; another faculty gets 403; the assigned instructor cancels one date; the block disappears; the room becomes bookable; the date restores.
 - 7/7 booking UI checks: class blocks appear; class details open; cancel action is visible; cancellation notice appears; block disappears; class-conflict message is visible inside the form.
 - Lab Schedule Viewer shows class blocks in the weekly timetable and includes classes in the live lab status.
@@ -91,19 +91,19 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 | Page / action | Admin | Faculty | MIS Staff | Student |
 |---|---|---|---|---|
-| Dashboard | Yes | Yes | Yes | No (redirects to Class Schedule) |
-| Class Schedule | Yes | Yes | Yes | Yes |
-| University Calendar | Yes | Yes | Yes | Yes |
-| Lab Schedule | Yes | Yes | Yes | Yes |
-| Lab Reservation | Yes | Yes | Yes | No |
-| Manage Bookings (now Manage Reservations) | Yes | Yes | Yes | No |
-| Reservation History | Yes | Yes | Yes | No |
-| Manage Schedules | Yes | No | Yes | No |
+| Dashboard | Yes | Yes | No | No (redirects to Class Schedule) |
+| Class Schedule | Yes | Yes | No | Yes |
+| University Calendar | Yes | Yes | No | Yes |
+| Lab Schedule | Yes | Yes | No | Yes |
+| Lab Reservation | Yes | Yes | No | No |
+| Manage Bookings (now Manage Reservations) | Yes | Yes | No | No |
+| Reservation History | Yes | Yes | No | No |
+| Manage Schedules | Yes | No | No | No |
 | User Account Codes | Yes | No | No | No |
 | User Management | Yes | No | No | No |
 | Lab Management | Yes | No | Yes | No |
-| Facility Issues | Yes | No | Yes | No |
-| Analytics Reports | Yes | No | Yes | No |
+| Facility Issues | Yes | Yes (report only) | Yes | No |
+| Analytics Reports | Yes | No | No | No |
 | Settings | Yes | Yes | Yes | Yes |
 
 - [ ] Log in as `student@example.com` → lands on `/class-schedule`; sidebar has no admin or booking items.
@@ -142,8 +142,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### MIS Staff (room/lab operations)
 - [ ] Generate an **MIS Staff** code and register `mis.staff@example.com`.
-- [ ] Log in as MIS → dashboard, schedules, labs, bookings, and analytics; no User Account Codes or User Management.
-- [ ] MIS can open **Manage Schedules**, **Lab Management**, **Analytics Reports**, and **Manage Bookings**.
+- [ ] Log in as MIS → lands on **Facility Issues**; the sidebar shows only Facility Issues, Laboratory Management, and Settings (no dropdown sections).
+- [ ] MIS cannot open schedules, analytics, or reservation pages and gets `403` on approve/reject.
+- [ ] MIS can still set a room's maintenance flag.
 - [ ] MIS is redirected away from `/admin/registration-codes` and `/admin/users`.
 
 ### User Management
@@ -242,6 +243,10 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Open **Facility Issues** as MIS/Admin → both lists show only open issues.
 - [ ] **Notify students** re-sends a reminder for that issue.
 - [ ] As a student, the bell badge increments within 30 seconds and the message is listed.
+- [ ] As faculty, open **Facility Issues** → submit a report for a room and for a specific PC.
+- [ ] The report appears under **Reported Issues** for MIS with the reporter name.
+- [ ] MIS resolves it (Flag PC / Set maintenance / Mark fixed / Dismiss) → reporter gets a notification.
+- [ ] Faculty cannot resolve or dismiss reports (`403`), and MIS has no reservation pages.
 
 ### Manage bookings
 - [ ] As admin, see all active reservations (pending/future); approve/reject and confirm status changes.
@@ -354,7 +359,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Student API call to update a booking status → `403`.
 - [ ] Faculty cannot manage an uncoordinated lab’s booking.
 - [ ] A different faculty cannot cancel another instructor’s class date → `403`.
-- [ ] MIS can create schedules/labs/bookings but gets `403` for user management and user account codes.
+- [ ] MIS can manage labs/maintenance and resolve facility reports but gets `403` for user management, user account codes, schedules, analytics, and reservation actions.
 - [ ] Deactivated account’s existing session is invalidated.
 - [ ] Invalid role/date/time/room input returns `400`/`404`, not a crash.
 - [ ] Canceling a non-class weekday → `400`.

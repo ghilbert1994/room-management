@@ -15,6 +15,7 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
 - Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
 - Facility Issue Notifications: putting a room under maintenance or reporting a PC broken notifies every active student, and marks the issue resolved with a follow-up notice.
+- Faculty Equipment Reports: professors report a broken PC, room, or equipment problem; MIS/Admin flag it for maintenance or dismiss it, and the reporter is notified when it is resolved.
 - Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
@@ -31,10 +32,11 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 
 Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
-- `mis_staff` is the laboratory/room operations staff role — handles room schedules, labs, bookings, and analytics.
+- `mis_staff` is the laboratory/room operations role. Their navigation is limited to **Facility Issues**, **Laboratory Management**, and **Settings** — room/PC maintenance plus resolving equipment reports. They do not see schedules, analytics, or reservations, and cannot create or approve bookings.
 
-- All signed-in users can view the **Class Schedule** and **University Calendar**.
-- `admin` and `mis_staff` can manage semesters, class schedule entries, the university calendar, laboratories, facility issues, bookings, and analytics.
+- All signed-in users can view the **Class Schedule** and **University Calendar** (admins, faculty, students).
+- `admin` and `mis_staff` can manage laboratories and facility issues; `admin` also manages semesters, class schedule entries, the university calendar, and analytics.
+- Reservations and approvals belong to `admin` and `faculty` coordinators only. `faculty` can also report broken PCs and equipment from **Facility Issues**; `mis_staff` and `admin` resolve those reports.
 - Only `admin` can create or revoke user account codes and manage user accounts.
 - `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.

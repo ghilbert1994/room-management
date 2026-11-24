@@ -99,7 +99,7 @@ export const ROUTES = [
     },
     {
         key: "facilityIssues",
-        path: "/admin/issues",
+        path: "/facility-issues",
         title: PAGE_TITLES.facilityIssues,
         component: FacilityIssues,
         roles: permissions.pages.facilityIssues
@@ -120,7 +120,11 @@ export const ROUTES = [
     }
 ]
 
-export const defaultRouteForRole = (role) => (role === "student" ? "/class-schedule" : "/dashboard")
+export const defaultRouteForRole = (role) => {
+    if (role === "student") return "/class-schedule"
+    if (role === "mis_staff") return "/facility-issues"
+    return "/dashboard"
+}
 
 export const routeByPath = (pathname) => ROUTES.find((route) => route.path === pathname)
 

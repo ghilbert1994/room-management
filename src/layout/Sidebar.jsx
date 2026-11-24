@@ -49,7 +49,8 @@ const NAV_GROUPS = [
     { id: "overview", label: "Overview", keys: ["dashboard"] },
     { id: "schedules", label: "Schedules", keys: ["classSchedule", "labSchedule", "universityCalendar"] },
     { id: "reservations", label: "Reservations", keys: ["manageReservations", "reservationHistory"] },
-    { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "facilityIssues", "inviteCodes", "userManagement", "analytics"] },
+    { id: "facilities", label: "Facilities", keys: ["facilityIssues"] },
+    { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "inviteCodes", "userManagement", "analytics"] },
     { id: "system", label: "System", keys: ["settings"] }
 ]
 

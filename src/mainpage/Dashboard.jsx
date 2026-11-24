@@ -102,11 +102,10 @@ function Dashboard() {
     const role = normalizeRole(user.role)
     const isAdmin = role === "admin"
     const isFaculty = role === "faculty"
-    const isMis = role === "mis_staff"
 
     const pendingToApprove = reservations.filter(res => {
         if (res.status !== "pending") return false;
-        if (isAdmin || isMis) return true;
+        if (isAdmin) return true;
         if (isFaculty) return String(res.coordinator_id) === String(user.id);
         return false;
     })
