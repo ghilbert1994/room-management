@@ -4,6 +4,7 @@ import { PageSkeleton } from "../layout/Loading.jsx";
 import { Download } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { PAGE_TITLES } from '../lib/pageTitles.js'
+import { EXPORT_FORMATS, exportTable } from '../lib/exportTable.js'
 import { useTheme } from '../theme/themeContext.js'
 import { themeById } from '../lib/themes.js'
 import {
@@ -19,6 +20,7 @@ function AnalyticsReports() {
         peakHours: []
     })
     const [loading, setLoading] = useState(true)
+    const [exportFormat, setExportFormat] = useState("csv")
 
     useEffect(() => {
         const fetchAnalytics = async () => {
@@ -43,27 +45,25 @@ function AnalyticsReports() {
     const topLab = analytics.labUsage.length > 0 ? analytics.labUsage[0].name : "N/A"
 
     const exportAnalytics = () => {
+        const columns = ["Section", "Item", "Value"]
         const rows = [
-            ["Metric", "Value"],
-            ["Total Approved Reservations", analytics.totalBookings],
-            ["Most Used Lab", topLab],
-            [],
-            ["Laboratory", "Usage %"],
-            ...analytics.labUsage.map((item) => [item.name, item.value]),
-            [],
-            ["Day", "Reservations"],
-            ...(analytics.weeklyTrends || []).map((item) => [item.day, item.bookings])
+            ["Summary", "Total Approved Reservations", analytics.totalBookings],
+            ["Summary", "Most Used Laboratory", topLab],
+            ...analytics.labUsage.map((item) => ["Laboratory Usage", item.name, `${item.value}%`]),
+            ...(analytics.weeklyTrends || []).map((item) => ["Reservations by Day", item.day, item.bookings])
         ]
-        const csv = rows
-            .map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
-            .join("\n")
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-        const url = URL.createObjectURL(blob)
-        const anchor = document.createElement("a")
-        anchor.href = url
-        anchor.download = "analytics-report.csv"
-        anchor.click()
-        URL.revokeObjectURL(url)
+
+        try {
+            exportTable({
+                filename: `analytics-report-${new Date().toISOString().slice(0, 10)}`,
+                title: "Analytics Report",
+                columns,
+                rows,
+                format: exportFormat
+            })
+        } catch (error) {
+            window.alert(error.message)
+        }
     }
 
     return (
@@ -81,7 +81,16 @@ function AnalyticsReports() {
                     <select><option value="">All Departments</option></select>
                 </div>
                 <div className="analytics-control-right">
-                    <button onClick={exportAnalytics}><Download /> Export CSV</button>
+                    <select
+                        value={exportFormat}
+                        onChange={(event) => setExportFormat(event.target.value)}
+                        style={{ height: "38px", padding: "0 10px", borderRadius: "6px", border: "1px solid var(--border-strong)", fontWeight: "bold", color: "var(--text-soft)" }}
+                    >
+                        {EXPORT_FORMATS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                    </select>
+                    <button onClick={exportAnalytics}><Download /> Export</button>
                 </div>
             </div>
 

@@ -219,7 +219,7 @@ router.post("/issues/notify", requireAuth, labWrite, async (req, res) => {
             if (rows.length === 0) return res.status(404).json({ error: "Computer not found" })
             if (!rows[0].is_maintenance) return res.status(409).json({ error: "This computer is not out of service" })
 
-            message = `Reminder: PC ${rows[0].pc_number} in ${rows[0].room_name} is still out of service${rows[0].maintenance_reason ? ` (${rows[0].maintenance_reason})` : ""}.`
+            message = `Reminder: Unit ${rows[0].pc_number} in ${rows[0].room_name} is still out of service${rows[0].maintenance_reason ? ` (${rows[0].maintenance_reason})` : ""}.`
         }
 
         const notified = await notifyRoles(NOTIFY_STUDENTS, message)
@@ -273,8 +273,8 @@ router.put("/toggle-pc", requireAuth, labWrite, async (req, res) => {
         let notified = 0
         if (nextState !== (computer.is_maintenance === true)) {
             const message = nextState
-                ? `Facility notice: PC ${computer.pc_number} in ${computer.room_name} is out of service${reason ? ` (${reason})` : ""}.`
-                : `Facility notice: PC ${computer.pc_number} in ${computer.room_name} is back in service.`
+                ? `Facility notice: Unit ${computer.pc_number} in ${computer.room_name} is out of service${reason ? ` (${reason})` : ""}.`
+                : `Facility notice: Unit ${computer.pc_number} in ${computer.room_name} is back in service.`
 
             notified = await notifyRoles(NOTIFY_STUDENTS, message)
         }

@@ -10,9 +10,32 @@ const canManage = requireCapability("facilityManage")
 const STAFF_ROLES = ["admin", "mis_staff"]
 const isStaff = (role) => STAFF_ROLES.includes(role)
 
+const MAX_ATTACHMENTS = 3
+const MAX_FILE_BYTES = 4 * 1024 * 1024
+const MAX_TOTAL_BYTES = 10 * 1024 * 1024
+const ALLOWED_PREFIXES = ["image/", "video/"]
+
+const decodeAttachment = (item) => {
+    const name = String(item?.name || "attachment").slice(0, 200)
+    const type = String(item?.type || "")
+
+    if (!ALLOWED_PREFIXES.some((prefix) => type.startsWith(prefix))) {
+        return { error: "Only photos and videos can be attached" }
+    }
+
+    const base64 = String(item?.data || "").replace(/^data:[^;]+;base64,/, "")
+    if (!base64) return { error: `${name} is empty` }
+
+    const buffer = Buffer.from(base64, "base64")
+    if (buffer.length === 0) return { error: `${name} is empty` }
+    if (buffer.length > MAX_FILE_BYTES) return { error: `${name} is larger than 4 MB` }
+
+    return { name, type, buffer }
+}
+
 const reportTarget = (report) =>
     report.computer_id
-        ? `PC ${report.pc_number} in ${report.room_name}`
+        ? `Unit ${report.pc_number} in ${report.room_name}`
         : report.room_name
 
 // Rooms and computers the reporter can pick from.
@@ -37,57 +60,100 @@ router.get("/report-options", requireAuth, async (req, res) => {
     }
 })
 
-// Faculty (and staff) submit a facility report.
+// Faculty, students, and staff submit a facility report.
 router.post("/reports", requireAuth, canReport, async (req, res) => {
     const { roomId, computerId, description } = req.body
     const text = String(description || "").trim()
+    const rawAttachments = Array.isArray(req.body.attachments) ? req.body.attachments : []
 
     if (!roomId && !computerId) {
-        return res.status(400).json({ error: "Choose a room or a computer to report" })
+        return res.status(400).json({ error: "Choose a room or a unit to report" })
     }
     if (text.length < 3 || text.length > 500) {
         return res.status(400).json({ error: "Describe the problem in 3 to 500 characters" })
     }
+    if (rawAttachments.length > MAX_ATTACHMENTS) {
+        return res.status(400).json({ error: `Attach at most ${MAX_ATTACHMENTS} files` })
+    }
+
+    const attachments = []
+    let totalBytes = 0
+
+    for (const item of rawAttachments) {
+        const decoded = decodeAttachment(item)
+        if (decoded.error) return res.status(400).json({ error: decoded.error })
+        totalBytes += decoded.buffer.length
+        if (totalBytes > MAX_TOTAL_BYTES) {
+            return res.status(400).json({ error: "Attachments are larger than the 10 MB limit" })
+        }
+        attachments.push(decoded)
+    }
+
+    const client = await db.connect()
 
     try {
+        await client.query("BEGIN")
+
         let target = null
 
         if (computerId) {
-            const { rows } = await db.query(`
+            const { rows } = await client.query(`
                 SELECT computers.id, computers.pc_number, computers.room_id, rooms.name AS room_name
                 FROM computers
                 JOIN rooms ON rooms.id = computers.room_id
                 WHERE computers.id = $1
             `, [computerId])
 
-            if (rows.length === 0) return res.status(404).json({ error: "Computer not found" })
+            if (rows.length === 0) {
+                await client.query("ROLLBACK")
+                return res.status(404).json({ error: "Unit not found" })
+            }
             target = rows[0]
         } else {
-            const { rows } = await db.query("SELECT id, name FROM rooms WHERE id = $1", [roomId])
-            if (rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
+            const { rows } = await client.query("SELECT id, name FROM rooms WHERE id = $1", [roomId])
+            if (rows.length === 0) {
+                await client.query("ROLLBACK")
+                return res.status(404).json({ error: "Laboratory not found" })
+            }
             target = rows[0]
         }
 
         const computerIdValue = target.pc_number ? target.id : null
         const roomIdValue = target.room_id || target.id
-        const label = target.pc_number ? `PC ${target.pc_number} in ${target.room_name}` : target.name
+        const label = target.pc_number ? `Unit ${target.pc_number} in ${target.room_name}` : target.name
 
-        const { rows } = await db.query(`
+        const { rows } = await client.query(`
             INSERT INTO facility_reports (reported_by, room_id, computer_id, description)
             VALUES ($1, $2, $3, $4)
             RETURNING id, room_id, computer_id, description, status, created_at
         `, [req.user.id, roomIdValue, computerIdValue, text])
 
+        const reportId = rows[0].id
+
+        for (const attachment of attachments) {
+            await client.query(`
+                INSERT INTO facility_report_attachments (report_id, file_name, mime_type, size_bytes, data)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [reportId, attachment.name, attachment.type, attachment.buffer.length, attachment.buffer])
+        }
+
+        await client.query("COMMIT")
+
         const reporter = req.user.name || req.user.email
+        const evidence = attachments.length > 0 ? ` (${attachments.length} file${attachments.length === 1 ? "" : "s"} attached)` : ""
+
         await notifyRoles(
             STAFF_ROLES,
-            `New facility report: ${label} — ${text} (reported by ${reporter}).`
+            `New facility report: ${label} — ${text}${evidence} (reported by ${reporter}).`
         )
 
-        res.status(201).json({ message: "Report submitted", report: rows[0] })
+        res.status(201).json({ message: "Report submitted", report: { ...rows[0], attachments: attachments.length } })
     } catch (error) {
+        await client.query("ROLLBACK").catch(() => {})
         console.error(error)
         res.status(500).json({ error: "Failed to submit report" })
+    } finally {
+        client.release()
     }
 })
 
@@ -108,11 +174,25 @@ router.get("/reports", requireAuth, canReport, async (req, res) => {
                    rooms.name AS room_name,
                    computers.pc_number,
                    reporter.name AS reporter_name,
-                   reporter.email AS reporter_email
+                   reporter.email AS reporter_email,
+                   COALESCE(attachments.items, '[]'::json) AS attachments
             FROM facility_reports
             JOIN rooms ON rooms.id = facility_reports.room_id
             LEFT JOIN computers ON computers.id = facility_reports.computer_id
             JOIN users AS reporter ON reporter.id = facility_reports.reported_by
+            LEFT JOIN LATERAL (
+                SELECT json_agg(
+                           json_build_object(
+                               'id', facility_report_attachments.id,
+                               'name', facility_report_attachments.file_name,
+                               'type', facility_report_attachments.mime_type,
+                               'size', facility_report_attachments.size_bytes
+                           )
+                           ORDER BY facility_report_attachments.id
+                       ) AS items
+                FROM facility_report_attachments
+                WHERE facility_report_attachments.report_id = facility_reports.id
+            ) AS attachments ON true
             ${ownOnly ? "WHERE facility_reports.reported_by = $1" : ""}
             ORDER BY CASE facility_reports.status WHEN 'open' THEN 0 ELSE 1 END,
                      facility_reports.created_at DESC
@@ -213,6 +293,40 @@ router.put("/reports/:id/resolve", requireAuth, canManage, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to resolve report" })
+    }
+})
+
+// Evidence attached to a report. Visible to staff and to the reporter.
+router.get("/attachments/:id", requireAuth, async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const { rows } = await db.query(`
+            SELECT attachments.id,
+                   attachments.file_name,
+                   attachments.mime_type,
+                   attachments.size_bytes,
+                   attachments.data,
+                   reports.reported_by
+            FROM facility_report_attachments AS attachments
+            JOIN facility_reports AS reports ON reports.id = attachments.report_id
+            WHERE attachments.id = $1
+        `, [id])
+
+        if (rows.length === 0) return res.status(404).json({ error: "Attachment not found" })
+
+        const file = rows[0]
+        if (!isStaff(req.user.role) && String(file.reported_by) !== String(req.user.id)) {
+            return res.status(403).json({ error: "You cannot view this attachment" })
+        }
+
+        res.setHeader("Content-Type", file.mime_type)
+        res.setHeader("Content-Length", file.size_bytes)
+        res.setHeader("Content-Disposition", `inline; filename="${String(file.file_name).replace(/"/g, "")}"`)
+        res.send(file.data)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to load attachment" })
     }
 })
 

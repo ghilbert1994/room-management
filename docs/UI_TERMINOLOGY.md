@@ -47,6 +47,7 @@ heading all use `pageTitleFor(key, role)`.
 | Lab Reservation (sidebar) / Lab Reservations (h1) | Laboratory Reservation |
 | Manage Bookings / Review Lab Requests / Manage All Bookings | Manage Reservations |
 | Lab Management / Computer Laboratory Status | Room Management |
+| PC / PCs / PCS (UI labels) | Unit / Units |
 | Facility Issues (faculty/student) | Report an Issue |
 | Settings / System Settings | Settings |
 | Analytics Reports (no heading) | Analytics Reports (heading added) |

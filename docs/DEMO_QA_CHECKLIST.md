@@ -198,9 +198,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### Classrooms
 - [ ] **Room Management → Register New Room** → choose **Classroom**.
-- [ ] The PC count field disappears for a classroom and the card shows a Classroom badge with no PC layout button.
+- [ ] The unit count field disappears for a classroom and the card shows a Classroom badge with no unit layout button.
 - [ ] Classroom appears in the class schedule room dropdown and **not** in the Laboratory Reservation room dropdown.
-- [ ] Registering the same room as **Laboratory** shows the PC count field again.
+- [ ] Registering the same room as **Laboratory** shows the unit count field again.
 
 ### Faculty views
 - [ ] Log in as `teacher@gmail.com` → **My Class Schedule** shows only that teacher's classes, in a weekly time grid plus a class list.
@@ -265,14 +265,18 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Try booking it → rejected as under maintenance.
 - [ ] A notification appears for students: "<room> is under maintenance (reason)".
 - [ ] Mark the room available again → students get a "back in service" notification.
-- [ ] Report a PC broken → students get "PC <n> in <room> is out of service".
-- [ ] Mark that PC fixed → students get "PC <n> in <room> is back in service".
+- [ ] Report a unit broken → students get "Unit <n> in <room> is out of service".
+- [ ] Mark that unit fixed → students get "Unit <n> in <room> is back in service".
 - [ ] Open **Facility Issues** as MIS/Admin → both lists show only open issues.
 - [ ] **Notify students** re-sends a reminder for that issue.
 - [ ] As a student, the bell badge increments within 30 seconds and the message is listed.
-- [ ] As faculty, open **Facility Issues** → submit a report for a room and for a specific PC.
+- [ ] As faculty, open **Report an Issue** → submit a report for a room and for a specific unit.
 - [ ] The report appears under **Reported Issues** for MIS with the reporter name.
-- [ ] MIS resolves it (Flag PC / Set maintenance / Mark fixed / Dismiss) → reporter gets a notification.
+- [ ] MIS resolves it (Flag Unit / Set maintenance / Mark fixed / Dismiss) → reporter gets a notification.
+- [ ] Attach one photo and one short video → both appear under **Evidence** and open in a preview.
+- [ ] Uploading a file larger than 4 MB, a fourth file, or more than 10 MB total → rejected with a clear message.
+- [ ] A non-image/non-video file (e.g. `.txt`) → rejected (`Only photos and videos can be attached`).
+- [ ] As another student, opening the attachment URL directly returns `403`.
 - [ ] Faculty cannot resolve or dismiss reports (`403`), and MIS has no reservation pages.
 
 ### Manage bookings
@@ -309,19 +313,21 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### Lab management (admin/MIS)
 - [ ] **Lab Management → Register New Lab**.
-- [ ] Add a lab with a coordinator and PC count.
+- [ ] Add a lab with a unit count.
 - [ ] The coordinator is saved and shown in the lab list.
 - [ ] Computers are created automatically (open the lab detail).
 - [ ] Edit the lab and change the coordinator.
 - [ ] Toggle whole-room maintenance with reason/date; booking is blocked.
-- [ ] Toggle an individual PC’s maintenance state.
-- [ ] **Facility Issues** lists the room and the PC, and both can be resolved there.
+- [ ] Toggle an individual unit's maintenance state.
+- [ ] **Facility Issues** lists the room and the unit, and both can be resolved there.
 - [ ] Delete a QA lab; deletion is blocked if reservations still reference it. Existing class entries keep their text room label but lose the room link.
 
 ### Analytics (admin/MIS)
 - [ ] Open **Analytics Reports**.
 - [ ] Metrics, peak-hours chart, and lab-usage bars render.
-- [ ] **Export CSV** downloads `analytics-report.csv`.
+- [ ] The export dropdown offers **CSV**, **Excel (.xls)**, and **PDF (print)**.
+- [ ] CSV downloads a `.csv`, Excel downloads a `.xls` that opens in Excel, PDF opens the print dialog for Save as PDF.
+- [ ] **Reservation History** has the same three export choices and exports the filtered rows.
 - [ ] Students and faculty cannot open the page.
 
 ---
@@ -338,7 +344,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] The live status shows **Currently In Use** for an active class or **Next Booking / Class** with the instructor name.
 - [ ] Student booking data is redacted: bookings show `Reserved` instead of names/purposes.
 - [ ] Student cannot access `/bookings`, `/admin/*`, or `/manage-bookings`.
-- [ ] **Report an Issue** is in the sidebar → submit a report for a room and for a PC.
+- [ ] **Report an Issue** is in the sidebar → submit a report for a room and for a unit.
 - [ ] The report appears in **My Reports** with status `open`.
 - [ ] The report appears for MIS/Admin under **Reported Issues** on Facility Issues.
 - [ ] Student cannot resolve or dismiss a report (`403`).

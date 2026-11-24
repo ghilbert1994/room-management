@@ -7,6 +7,7 @@ import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import { subscribeToDataChanges } from "../lib/dataEvents.js"
 import { PAGE_TITLES } from "../lib/pageTitles.js"
+import { EXPORT_FORMATS, exportTable } from "../lib/exportTable.js"
 
 const parseLocal = (value) => {
     if (!value) return new Date()
@@ -41,8 +42,6 @@ const statusColors = (status) => STATUS_COLORS[status] || { bg: "var(--surface-m
 
 const statusLabel = (status) => String(status || "").replace(/_/g, " ")
 
-const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`
-
 function ReservationHistory() {
     const { labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
@@ -52,6 +51,7 @@ function ReservationHistory() {
     const [from, setFrom] = useState("")
     const [to, setTo] = useState("")
     const [search, setSearch] = useState("")
+    const [exportFormat, setExportFormat] = useState("csv")
 
     const fetchHistory = async () => {
         try {
@@ -94,9 +94,9 @@ function ReservationHistory() {
             .sort((a, b) => parseLocal(b.start) - parseLocal(a.start))
     }, [reservations, status, room, from, to, search])
 
-    const exportCsv = () => {
-        const header = ["Laboratory", "Reserved By", "Purpose", "Notes", "Participants", "Start", "End", "Status", "Requested On"]
-        const lines = rows.map((reservation) => [
+    const exportRows = () => {
+        const columns = ["Laboratory", "Reserved By", "Purpose", "Notes", "Participants", "Start", "End", "Status", "Requested On"]
+        const data = rows.map((reservation) => [
             reservation.room,
             reservation.user,
             reservation.purpose || "",
@@ -106,15 +106,19 @@ function ReservationHistory() {
             reservation.end,
             reservation.status,
             reservation.created_at || ""
-        ].map(csvCell).join(","))
+        ])
 
-        const blob = new Blob([[header.map(csvCell).join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8;" })
-        const url = URL.createObjectURL(blob)
-        const anchor = document.createElement("a")
-        anchor.href = url
-        anchor.download = `reservation-history-${toDateInput(new Date())}.csv`
-        anchor.click()
-        URL.revokeObjectURL(url)
+        try {
+            exportTable({
+                filename: `reservation-history-${toDateInput(new Date())}`,
+                title: "Reservation History",
+                columns,
+                rows: data,
+                format: exportFormat
+            })
+        } catch (error) {
+            window.alert(error.message)
+        }
     }
 
     const resetFilters = () => {
@@ -168,13 +172,24 @@ function ReservationHistory() {
                         ))}
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={exportCsv}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border-strong)", backgroundColor: "#ffffff", color: "var(--navy-900)", fontWeight: "bold", cursor: "pointer" }}
-                    >
-                        <Download size={16} /> Export CSV
-                    </button>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                        <select
+                            value={exportFormat}
+                            onChange={(event) => setExportFormat(event.target.value)}
+                            style={{ height: "38px", padding: "0 10px", borderRadius: "8px", border: "1px solid var(--border-strong)", backgroundColor: "#ffffff", color: "var(--text-soft)", fontWeight: "600" }}
+                        >
+                            {EXPORT_FORMATS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={exportRows}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", border: "1px solid var(--border-strong)", backgroundColor: "#ffffff", color: "var(--navy-900)", fontWeight: "bold", cursor: "pointer" }}
+                        >
+                            <Download size={16} /> Export
+                        </button>
+                    </div>
                 </div>
 
                 <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "20px" }}>

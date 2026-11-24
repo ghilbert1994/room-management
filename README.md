@@ -18,9 +18,11 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - Schedule Conflict Protection: overlapping room, instructor, or section assignments are rejected, along with classroom/laboratory mismatches.
 - Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
 - Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
-- Facility Issue Notifications: putting a room under maintenance or reporting a PC broken notifies every active student, and marks the issue resolved with a follow-up notice.
-- Faculty Equipment Reports: professors report a broken PC, room, or equipment problem; MIS/Admin flag it for maintenance or dismiss it, and the reporter is notified when it is resolved.
-- Maintenance Tracking: Toggle whole-room maintenance or track individual PC issues with reasons and expected return dates.
+- Facility Issue Notifications: putting a room under maintenance or reporting a unit broken notifies every active student, and marks the issue resolved with a follow-up notice.
+- Faculty Equipment Reports: professors and students report a broken unit, room, or equipment problem; MIS/Admin flag it for maintenance or dismiss it, and the reporter is notified when it is resolved.
+- Report Evidence: photos and short videos can be attached to a report, capped at 3 files / 4 MB each / 10 MB total, and viewed by staff and the reporter.
+- Export Formats: Reservation History and Analytics export to CSV, Excel (.xls), or PDF (browser print dialog).
+- Maintenance Tracking: Toggle whole-room maintenance or track individual unit issues with reasons and expected return dates.
 - Live Analytics: Real-time dashboards showing peak usage hours, most-used labs, and overall booking trends.
 - Notification System: In-app alerts for new requests and approval status changes.
 - Semester Class Schedule: Admin-published, searchable by course, section, year level, subject, instructor, and room.
@@ -36,10 +38,10 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 
 Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
-- `mis_staff` is the laboratory/room operations role. Their navigation is limited to **Facility Issues**, **Room Management**, and **Settings** — room/PC maintenance plus resolving equipment reports. They do not see schedules, analytics, or reservations, and cannot create or approve bookings.
+- `mis_staff` is the laboratory/room operations role. Their navigation is limited to **Facility Issues**, **Room Management**, and **Settings** — room/unit maintenance plus resolving equipment reports. They do not see schedules, analytics, or reservations, and cannot create or approve bookings.
 
 - `admin` sees everything. They approve every reservation, publish class schedules, manage rooms, and resolve facility reports.
-- `faculty` get **My Class Schedule** (their own timetable only), **My Reservations** (their own submissions, with cancel and follow-up), **Laboratory Reservation** to create requests, and **Report an Issue** for broken PCs and equipment.
+- `faculty` get **My Class Schedule** (their own timetable only), **My Reservations** (their own submissions, with cancel and follow-up), **Laboratory Reservation** to create requests, and **Report an Issue** for broken units and equipment.
 - `student` accounts register freely and can view the Class Schedule, Laboratory Schedule, University Calendar, and **Report an Issue**.
 - `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
@@ -63,6 +65,7 @@ node migrations/run.js 006_reservation_purposes.sql
 node migrations/run.js 007_drop_legacy_purpose.sql
 node migrations/run.js 008_facility_reports.sql
 node migrations/run.js 009_room_types.sql
+node migrations/run.js 010_facility_report_attachments.sql
 ```
 
 `006_reservation_purposes.sql` is the normalization step for reservation
