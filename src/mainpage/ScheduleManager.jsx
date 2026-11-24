@@ -1,9 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useContext, useEffect, useState } from "react"
 import Modal from "../layout/Modal.jsx"
-import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck, Upload } from "lucide-react"
+import { Plus, Pencil, Trash2, CalendarDays, CalendarRange, Layers, ShieldCheck, Upload, ArrowLeft, BookOpen } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
 import { PageSkeleton } from "../layout/Loading.jsx"
+import WeeklyClassCalendar from "../layout/WeeklyClassCalendar.jsx"
 import { notifyScheduleChanged } from "../lib/dataEvents.js"
 import { PAGE_TITLES } from "../lib/pageTitles.js"
 import "./Schedules.css"
@@ -44,7 +45,8 @@ const emptySchedule = {
     start_time: "08:00",
     end_time: "09:00",
     room: "",
-    room_id: ""
+    room_id: "",
+    room_type: "laboratory"
 }
 const emptyEvent = {
     title: "",
@@ -179,6 +181,8 @@ function ScheduleManager() {
     const [csvText, setCsvText] = useState("")
     const [importing, setImporting] = useState(false)
     const [importError, setImportError] = useState("")
+    const [selectedTeacherId, setSelectedTeacherId] = useState("")
+    const [teacherSemesterId, setTeacherSemesterId] = useState("")
 
     const loadData = async () => {
         setError("")
@@ -239,7 +243,7 @@ function ScheduleManager() {
         setEditor({ type: "semester", id: semester?.id || null })
     }
 
-    const openScheduleEditor = (schedule = null) => {
+    const openScheduleEditor = (schedule = null, presetInstructor = null) => {
         setScheduleForm(schedule
             ? {
                 semester_id: String(schedule.semester_id),
@@ -253,9 +257,14 @@ function ScheduleManager() {
                 start_time: shortTime(schedule.start_time),
                 end_time: shortTime(schedule.end_time),
                 room: schedule.room || "",
-                room_id: schedule.room_id ? String(schedule.room_id) : ""
+                room_id: schedule.room_id ? String(schedule.room_id) : "",
+                room_type: schedule.room_type || "laboratory"
             }
-            : { ...emptySchedule, semester_id: defaultSemesterId() })
+            : {
+                ...emptySchedule,
+                semester_id: teacherSemesterId || defaultSemesterId(),
+                instructor: presetInstructor?.name || ""
+            })
         setFormError("")
         setEditor({ type: "schedule", id: schedule?.id || null })
     }
@@ -330,7 +339,6 @@ function ScheduleManager() {
                 semester_id: Number(scheduleForm.semester_id),
                 day_of_week: Number(scheduleForm.day_of_week)
             }
-
             if (editor.id) {
                 await request(`/api/schedule/semester-schedules/${editor.id}`, { method: "PUT", body: JSON.stringify(payload) })
             } else {
@@ -475,6 +483,24 @@ function ScheduleManager() {
         return semester ? `${semester.school_year} · ${semester.term}` : "—"
     }
 
+    const selectedTeacher = instructors.find((teacher) => String(teacher.id) === String(selectedTeacherId)) || null
+    const activeTeacherSemesterId = teacherSemesterId || defaultSemesterId()
+
+    const belongsToTeacher = (item, teacher) =>
+        item.instructor_id
+            ? String(item.instructor_id) === String(teacher.id)
+            : String(item.instructor || "").toLowerCase() === String(teacher.name || "").toLowerCase()
+
+    const teacherSchedules = selectedTeacher
+        ? schedules.filter((item) =>
+            String(item.semester_id) === String(activeTeacherSemesterId) &&
+            belongsToTeacher(item, selectedTeacher)
+        )
+        : []
+
+    const countForTeacher = (teacher) =>
+        schedules.filter((item) => item.semester_id && belongsToTeacher(item, teacher)).length
+
     if (loading) {
         return <PageSkeleton label="Loading schedules" stats={3} rows={6} columns={7} />
     }
@@ -500,6 +526,9 @@ function ScheduleManager() {
             <div className="tab-bar">
                 <button className={tab === "schedules" ? "active" : ""} onClick={() => setTab("schedules")}>
                     <CalendarDays size={16} /> Class Schedule
+                </button>
+                <button className={tab === "teachers" ? "active" : ""} onClick={() => setTab("teachers")}>
+                    <BookOpen size={16} /> Teacher Schedules
                 </button>
                 <button className={tab === "semesters" ? "active" : ""} onClick={() => setTab("semesters")}>
                     <Layers size={16} /> Semesters
@@ -607,6 +636,134 @@ function ScheduleManager() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {tab === "teachers" && (
+                <div className="schedule-card">
+                    <div className="schedule-card-header">
+                        <div>
+                            <h2>{selectedTeacher ? `${selectedTeacher.name}'s Schedule` : "Teacher Schedules"}</h2>
+                            <p>
+                                {selectedTeacher
+                                    ? "Add, edit, or remove the classes assigned to this teacher."
+                                    : "Pick a faculty member to view and build their weekly schedule."}
+                            </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                            {selectedTeacher && (
+                                <>
+                                    <div className="schedule-field" style={{ minWidth: 200 }}>
+                                        <label>Semester</label>
+                                        <select
+                                            value={activeTeacherSemesterId}
+                                            onChange={(event) => setTeacherSemesterId(event.target.value)}
+                                        >
+                                            {semesters.map((semester) => (
+                                                <option key={semester.id} value={semester.id}>
+                                                    {semester.school_year} · {semester.term}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <button className="primary-btn" onClick={() => openScheduleEditor(null, selectedTeacher)}>
+                                        <Plus size={16} /> Add Class
+                                    </button>
+                                    <button className="ghost-btn" onClick={() => setSelectedTeacherId("")}>
+                                        <ArrowLeft size={16} /> All teachers
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {instructors.length === 0 ? (
+                        <div className="schedule-empty">
+                            <BookOpen size={32} color="#94a3b8" />
+                            <h3>No faculty accounts</h3>
+                            <p>Create faculty accounts first so schedules can be assigned.</p>
+                        </div>
+                    ) : !selectedTeacher ? (
+                        <div style={{ padding: 20, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))", gap: 12 }}>
+                            {instructors.map((teacher) => (
+                                <button
+                                    key={teacher.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedTeacherId(String(teacher.id))
+                                        if (!teacherSemesterId) setTeacherSemesterId(defaultSemesterId())
+                                    }}
+                                    style={{
+                                        textAlign: "left",
+                                        padding: "16px 18px",
+                                        borderRadius: 12,
+                                        border: "1px solid var(--border)",
+                                        background: "var(--surface-muted)",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 4
+                                    }}
+                                >
+                                    <strong style={{ color: "var(--navy-900)", fontSize: 15 }}>{teacher.name}</strong>
+                                    <span style={{ color: "var(--text-muted)", fontSize: 12.5 }}>
+                                        {countForTeacher(teacher)} class{countForTeacher(teacher) === 1 ? "" : "es"} total
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 18 }}>
+                            {teacherSchedules.length === 0 ? (
+                                <div className="schedule-empty">
+                                    <CalendarDays size={32} color="#94a3b8" />
+                                    <h3>No classes for this semester</h3>
+                                    <p>Use Add Class to create the first entry for {selectedTeacher.name}.</p>
+                                </div>
+                            ) : (
+                                <WeeklyClassCalendar schedules={teacherSchedules} height={520} />
+                            )}
+
+                            {teacherSchedules.length > 0 && (
+                                <div className="schedule-table-wrapper">
+                                    <table className="schedule-table" style={{ minWidth: 720 }}>
+                                        <thead>
+                                            <tr>
+                                                <th>Subject</th>
+                                                <th>Course &amp; Section</th>
+                                                <th>Day &amp; Time</th>
+                                                <th>Room</th>
+                                                <th style={{ textAlign: "right" }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {teacherSchedules.map((item) => (
+                                                <tr key={item.id}>
+                                                    <td>
+                                                        <strong style={{ color: "var(--navy-900)" }}>{item.subject}</strong>
+                                                        <div className="muted" style={{ color: "var(--text-muted)", fontSize: 12 }}>{item.subject_code || "—"}</div>
+                                                    </td>
+                                                    <td>{item.course} {item.year_level}<div className="muted" style={{ color: "var(--text-muted)", fontSize: 12 }}>Section {item.section}</div></td>
+                                                    <td>{dayLabel(item.day_of_week)}<div className="muted" style={{ color: "var(--text-muted)", fontSize: 12 }}>{shortTime(item.start_time)}–{shortTime(item.end_time)}</div></td>
+                                                    <td>{item.room_name || item.room || "TBA"}</td>
+                                                    <td style={{ textAlign: "right" }}>
+                                                        <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                                                            <button className="ghost-btn" onClick={() => openScheduleEditor(item)} style={{ height: 32, padding: "0 10px" }}>
+                                                                <Pencil size={14} /> Edit
+                                                            </button>
+                                                            <button className="ghost-btn" onClick={() => remove("schedule", item.id, `${item.subject} (${item.course} ${item.section})`)} style={{ height: 32, padding: "0 10px" }}>
+                                                                <Trash2 size={14} /> Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -853,18 +1010,30 @@ function ScheduleManager() {
                             />
                         </div>
                         <div className="form-field">
+                            <label>Room Type</label>
+                            <select
+                                value={scheduleForm.room_type}
+                                onChange={(event) => setScheduleForm(prev => ({ ...prev, room_type: event.target.value, room_id: "" }))}
+                            >
+                                <option value="laboratory">Laboratory</option>
+                                <option value="classroom">Classroom</option>
+                            </select>
+                        </div>
+                        <div className="form-field">
                             <label>Room</label>
                             <select
                                 required
                                 value={scheduleForm.room_id}
                                 onChange={(event) => setScheduleForm(prev => ({ ...prev, room_id: event.target.value }))}
                             >
-                                <option value="">Select a laboratory</option>
-                                {labs.map((lab) => (
-                                    <option key={lab.id} value={lab.id} disabled={lab.maintenance}>
-                                        {lab.name}{lab.maintenance ? " (Under Maintenance)" : ""}
-                                    </option>
-                                ))}
+                                <option value="">Select a {scheduleForm.room_type}</option>
+                                {labs
+                                    .filter((lab) => (lab.room_type || "laboratory") === scheduleForm.room_type)
+                                    .map((lab) => (
+                                        <option key={lab.id} value={lab.id} disabled={lab.maintenance}>
+                                            {lab.name}{lab.maintenance ? " (Under Maintenance)" : ""}
+                                        </option>
+                                    ))}
                             </select>
                         </div>
                         <div className="form-field">

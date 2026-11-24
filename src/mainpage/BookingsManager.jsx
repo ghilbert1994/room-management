@@ -1,10 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState, useContext } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import Card from "./Card"
-import { Check, X, Search, MapPin, History } from "lucide-react"
-import { UserContext } from "../auth/UserContext.jsx"
-import { normalizeRole } from "../auth/roles.js"
+import { Check, X, Search, History } from "lucide-react"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import { notifyBookingsChanged, subscribeToDataChanges } from "../lib/dataEvents.js"
 import { PAGE_TITLES } from "../lib/pageTitles.js"
@@ -22,7 +20,6 @@ const parseLocal = (value) => {
 }
 
 function BookingsManager() {
-    const { user, labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState("all")
@@ -67,15 +64,7 @@ function BookingsManager() {
         }
     }
 
-    const isTeacher = normalizeRole(user.role) === "faculty"
-    const isMis = normalizeRole(user.role) === "mis_staff"
-    const assignedLabs = labs.filter(lab => String(lab.coordinator_id) === String(user.id))
-
     const filteredReservations = reservations.filter(r => {
-        if (isTeacher && String(r.coordinator_id) !== String(user.id)) {
-            return false
-        }
-
         const matchesStatus = filter === "all" || r.status === filter
         const matchesSearch = 
             r.room.toLowerCase().includes(search.toLowerCase()) || 
@@ -99,22 +88,8 @@ function BookingsManager() {
             
             <div className="dashboard-title">
                 <div className="dashboard-title-left">
-                    <label>{isTeacher ? "COORDINATOR HUB" : isMis ? "MIS COMMAND CENTER" : "ADMIN COMMAND CENTER"}</label>
+                    <label>ADMIN COMMAND CENTER</label>
                     <h1 style={{ margin: 0 }}>{PAGE_TITLES.manageReservations}</h1>
-                    {isTeacher && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Assigned Labs:</span>
-                            {assignedLabs.length === 0 ? (
-                                <span style={{ fontSize: '13px', color: '#dc2626' }}>None</span>
-                            ) : (
-                                assignedLabs.map(lab => (
-                                    <span key={lab.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: 'var(--navy-900)', color: 'white', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
-                                        <MapPin size={12} /> {lab.name}
-                                    </span>
-                                ))
-                            )}
-                        </div>
-                    )}
                 </div>
                 <Link
                     to="/reservations/history"
@@ -166,7 +141,6 @@ function BookingsManager() {
                             <tr style={{ borderBottom: '2px solid var(--border)' }}>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Room</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Reserved By</th>
-                                {!isTeacher && <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Coordinator</th>}
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Schedule</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Details</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Status</th>
@@ -176,7 +150,7 @@ function BookingsManager() {
                         <tbody>
                             {filteredReservations.length === 0 ? (
                                 <tr>
-                                    <td colSpan={!isTeacher ? 7 : 6} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         No reservations found.
                                     </td>
                                 </tr>
@@ -190,7 +164,6 @@ function BookingsManager() {
                                         <tr key={res.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                                             <td style={{ padding: '12px', fontWeight: 'bold', color: 'var(--navy-900)' }}>{res.room}</td>
                                             <td style={{ padding: '12px', color: 'var(--text-soft)' }}>{res.user}</td>
-                                            {!isTeacher && <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{res.coordinator_name || "None"}</td>}
                                             <td style={{ padding: '12px', fontSize: '13px' }}>
                                                 <div style={{ color: 'var(--text-soft)', fontWeight: 'bold' }}>{start.toLocaleDateString()}</div>
                                                 <div style={{ color: 'var(--text-muted)' }}>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>

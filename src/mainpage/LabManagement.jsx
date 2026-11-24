@@ -4,9 +4,8 @@ import Card from "./Card"
 import PlaceholderLab from "../assets/placeholder-lab.jpg"
 import Toggle from "../layout/Toggle.jsx"
 import Modal from "../layout/Modal.jsx"
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext } from 'react'
 import { UserContext } from "../auth/UserContext.jsx"
-import { PageSkeleton } from "../layout/Loading.jsx"
 import { PAGE_TITLES } from "../lib/pageTitles.js"
 
 function LabManagement() {
@@ -16,9 +15,6 @@ function LabManagement() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
     const [showPCModal, setShowPCModal] = useState(false)
-
-    const [teachers, setTeachers] = useState([])
-    const [loading, setLoading] = useState(true)
 
     const [activeLab, setActiveLab] = useState(null)
     const [computers, setComputers] = useState([])
@@ -33,31 +29,14 @@ function LabManagement() {
     const [roomBuilding, setRoomBuilding] = useState("")
     const [roomCapacity, setRoomCapacity] = useState("")
     const [roomPCS, setRoomPCS] = useState("")
-    const [roomCoordinator, setRoomCoordinator] = useState("")
+    const [roomType, setRoomType] = useState("laboratory")
 
     const [editRoom, setEditRoom] = useState("")
     const [editRoomName, setEditRoomName] = useState("")
     const [editRoomBuilding, setEditRoomBuilding] = useState("")
     const [editRoomCapacity, setEditRoomCapacity] = useState("")
     const [editRoomPCS, setEditRoomPCS] = useState("")
-    const [editCoordinator, setEditCoordinator] = useState("")
-
-    useEffect(() => {
-        const fetchTeachers = async () => {
-            try {
-                const res = await fetch(`/api/lab/get-teachers`, { credentials: "include" })
-                if (res.ok) {
-                    const data = await res.json()
-                    setTeachers(data.teachers || [])
-                }
-            } catch (error) {
-                console.error("Failed to load coordinators", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchTeachers()
-    }, [])
+    const [editRoomType, setEditRoomType] = useState("laboratory")
 
     const refreshLabs = async () => {
         const labsResponse = await fetch(`/api/lab/all`, { credentials: "include" })
@@ -76,14 +55,14 @@ function LabManagement() {
                 roomBuilding, 
                 roomCapacity, 
                 roomPCS,
-                coordinatorId: roomCoordinator || null
+                roomType
             })
         })
 
         if (response.ok) {
             await refreshLabs()
             setShowModal(false)
-            setRoomName(""); setRoomBuilding(""); setRoomCapacity(""); setRoomPCS(""); setRoomCoordinator("")
+            setRoomName(""); setRoomBuilding(""); setRoomCapacity(""); setRoomPCS(""); setRoomType("laboratory")
         }
     }
 
@@ -93,7 +72,7 @@ function LabManagement() {
         setEditRoomBuilding(lab.location)
         setEditRoomCapacity(lab.capacity)
         setEditRoomPCS(lab.computer_count)
-        setEditCoordinator(lab.coordinator_id || "")
+        setEditRoomType(lab.room_type || "laboratory")
         setShowEditModal(true)
     }
 
@@ -109,7 +88,7 @@ function LabManagement() {
                 roomBuilding: editRoomBuilding,
                 roomCapacity: editRoomCapacity,
                 roomPCS: editRoomPCS,
-                coordinatorId: editCoordinator || null
+                roomType: editRoomType
             })
         })
 
@@ -221,10 +200,6 @@ function LabManagement() {
         togglePCStatus(selectedPC.id, true, pcReason)
     }
 
-    if (loading) {
-        return <PageSkeleton label="Loading laboratories" stats={4} rows={4} columns={4} />
-    }
-
     return (
         <>
             <div className="lab-management-title">
@@ -234,56 +209,58 @@ function LabManagement() {
                 </div>
                 <div className="lab-management-title-right">
                     <button className="lab-management-title-register" onClick={() => setShowModal(true)}>
-                        <PlusCircle size={20} strokeWidth={3} /> Register New Lab
+                        <PlusCircle size={20} strokeWidth={3} /> Register New Room
                     </button>
                 </div>
             </div>
 
-            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Register New Lab">
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Register New Room">
                 <form onSubmit={handleAddSubmit}>
                     <input type="text" placeholder="Room number" value={roomName} onChange={(e) => setRoomName(e.target.value)} required />
                     <input type="text" placeholder="Building" value={roomBuilding} onChange={(e) => setRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={roomCapacity} onChange={(e) => setRoomCapacity(e.target.value)} required />
-                    <input type="number" placeholder="Available PCs" value={roomPCS} onChange={(e) => setRoomPCS(e.target.value)} required />
-                    
-                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Assign Coordinator</label>
-                    <select 
-                        value={roomCoordinator} 
-                        onChange={(e) => setRoomCoordinator(e.target.value)}
+
+                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Room Type</label>
+                    <select
+                        value={roomType}
+                        onChange={(e) => setRoomType(e.target.value)}
                         style={{width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '6px', border: '1px solid #ccc'}}
                     >
-                        <option value="">No Coordinator (Admin Only)</option>
-                        {teachers.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
+                        <option value="laboratory">Laboratory</option>
+                        <option value="classroom">Classroom</option>
                     </select>
+
+                    {roomType === "laboratory" && (
+                        <input type="number" placeholder="Available PCs" value={roomPCS} onChange={(e) => setRoomPCS(e.target.value)} required />
+                    )}
 
                     <button type="submit">Add Room</button>
                 </form>
             </Modal>
 
-            <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Lab">
+            <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Room">
                 <form onSubmit={handleEditSubmit}>
                     <input type="text" placeholder="Room number" value={editRoomName} onChange={(e) => setEditRoomName(e.target.value)} required />
                     <input type="text" placeholder="Building" value={editRoomBuilding} onChange={(e) => setEditRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={editRoomCapacity} onChange={(e) => setEditRoomCapacity(e.target.value)} required />
-                    <input type="number" placeholder="Available PCs" value={editRoomPCS} onChange={(e) => setEditRoomPCS(e.target.value)} required />
-                    
-                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Assign Coordinator</label>
-                    <select 
-                        value={editCoordinator} 
-                        onChange={(e) => setEditCoordinator(e.target.value)}
+
+                    <label style={{display: 'block', marginTop: '10px', fontWeight: 'bold', fontSize: '14px'}}>Room Type</label>
+                    <select
+                        value={editRoomType}
+                        onChange={(e) => setEditRoomType(e.target.value)}
                         style={{width: '100%', padding: '10px', marginBottom: '16px', borderRadius: '6px', border: '1px solid #ccc'}}
                     >
-                        <option value="">No Coordinator (Admin Only)</option>
-                        {teachers.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
+                        <option value="laboratory">Laboratory</option>
+                        <option value="classroom">Classroom</option>
                     </select>
+
+                    {editRoomType === "laboratory" && (
+                        <input type="number" placeholder="Available PCs" value={editRoomPCS} onChange={(e) => setEditRoomPCS(e.target.value)} required />
+                    )}
 
                     <button type="submit">Save Changes</button>
                     <button type="button" className="lab-management-delete" onClick={handleDelete}>
-                        <Trash2 /> Delete Lab
+                        <Trash2 /> Delete Room
                     </button>
                 </form>
             </Modal>
@@ -339,7 +316,7 @@ function LabManagement() {
                 <Card className="lab-management-stats lab-management-bookings" columns={3}>
                     <div className="lab-management-stats-icon-wrapper icon-door"><DoorOpen size={32}/></div>
                     <div className="lab-management-stats-title-number">
-                        <p>Total Laboratories</p><h2>{labs.length} Rooms</h2>
+                        <p>Total Rooms</p><h2>{labs.length} Rooms</h2>
                     </div>
                 </Card>
                 <Card className="lab-management-stats lab-management-reservationsr" columns={3}>
@@ -373,20 +350,21 @@ function LabManagement() {
                                 <div className="lab-management-labcard-info-title-location">
                                     <MapPin /><p>{lab.location}</p>
                                 </div>
+                                <span style={{ alignSelf: "flex-start", marginTop: 6, padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", backgroundColor: lab.room_type === "classroom" ? "#e0e7ff" : "#dcfce7", color: lab.room_type === "classroom" ? "#4338ca" : "#166534" }}>
+                                    {lab.room_type === "classroom" ? "Classroom" : "Laboratory"}
+                                </span>
                             </div>
 
                             <div className="lab-management-labcard-info-capacity">
                                 <div className="lab-management-labcard-info-capacity-item">
                                     <p>CAPACITY</p><h2>{lab.capacity}</h2>
                                 </div>
-                                <div className="lab-management-labcard-info-capacity-item">
-                                    <p>PCS</p><h2>{lab.computer_count}</h2>
-                                </div>
+                                {lab.room_type !== "classroom" && (
+                                    <div className="lab-management-labcard-info-capacity-item">
+                                        <p>PCS</p><h2>{lab.computer_count}</h2>
+                                    </div>
+                                )}
                             </div>
-
-                            <p style={{ margin: '4px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                                <strong>Coordinator:</strong> {lab.coordinator_name || "None"}
-                            </p>
 
                             <div className="lab-management-labcard-info-diag">
                                 <p>Whole Room Maintenance</p>
@@ -400,12 +378,14 @@ function LabManagement() {
                                 </div>
                             )}
 
-                            <button 
-                                onClick={() => openPCLayout(lab)}
-                                style={{marginTop: '10px', padding: '8px', backgroundColor: 'var(--navy-900)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}
-                            >
-                                View PC Layout
-                            </button>
+                            {lab.room_type !== "classroom" && (
+                                <button 
+                                    onClick={() => openPCLayout(lab)}
+                                    style={{marginTop: '10px', padding: '8px', backgroundColor: 'var(--navy-900)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold'}}
+                                >
+                                    View PC Layout
+                                </button>
+                            )}
 
                             <button type="button" className="lab-management-labcard-info-diag-edit" onClick={() => handleEditClick(lab)}>
                                 <Pen /><p>Edit Details</p>

@@ -14,7 +14,7 @@ import {
 import "./Schedules.css"
 import { UserContext } from "../auth/UserContext.jsx"
 import { normalizeRole } from "../auth/roles.js"
-import { PAGE_TITLES } from "../lib/pageTitles.js"
+import { pageTitleFor } from "../lib/pageTitles.js"
 
 const formatUntil = (value) => {
     if (!value) return "Not set"
@@ -189,7 +189,7 @@ function FacilityIssues() {
         <div className="schedule-page">
             <div className="schedule-hero">
                 <div>
-                    <h1>{PAGE_TITLES.facilityIssues}</h1>
+                    <h1>{pageTitleFor("facilityIssues", role)}</h1>
                     <p>
                         {canManage
                             ? "Review equipment reports, and manage rooms under maintenance and computers out of service. Student-facing notifications are sent automatically."

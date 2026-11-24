@@ -25,14 +25,17 @@ import { UserContext } from '../auth/UserContext.jsx'
 import { useContext, useEffect, useState } from 'react'
 import { normalizeRole } from '../auth/roles.js'
 import { ROUTES, routeByKey } from '../lib/routes.js'
+import { pageTitleFor } from '../lib/pageTitles.js'
 
 const ROUTE_ICONS = {
     dashboard: LayoutDashboardIcon,
     classSchedule: CalendarDays,
+    myClassSchedule: CalendarDays,
     universityCalendar: CalendarRange,
     labSchedule: Calendar,
     reservations: BookIcon,
     manageReservations: ClipboardList,
+    myReservations: ClipboardList,
     reservationHistory: History,
     scheduleManager: ShieldCheck,
     inviteCodes: KeyRound,
@@ -47,8 +50,8 @@ const ROUTE_ICONS = {
 // A group with a single visible page renders as a plain link (no chevron).
 const NAV_GROUPS = [
     { id: "overview", label: "Overview", keys: ["dashboard"] },
-    { id: "schedules", label: "Schedules", keys: ["classSchedule", "labSchedule", "universityCalendar"] },
-    { id: "reservations", label: "Reservations", keys: ["manageReservations", "reservationHistory"] },
+    { id: "schedules", label: "Schedules", keys: ["myClassSchedule", "classSchedule", "labSchedule", "universityCalendar"] },
+    { id: "reservations", label: "Reservations", keys: ["manageReservations", "myReservations", "reservationHistory"] },
     { id: "facilities", label: "Facilities", keys: ["facilityIssues"] },
     { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "inviteCodes", "userManagement", "analytics"] },
     { id: "system", label: "System", keys: ["settings"] }
@@ -113,7 +116,7 @@ function Sidebar({ isOpen = false, onClose }) {
                     onClick={onClose}
                     className={({ isActive }) => `${isActive ? "active" : ""}${grouped ? " sidebar-sub-link" : ""}`}
                 >
-                    <Icon /> {route.title}
+                    <Icon /> {pageTitleFor(route.key, role)}
                 </NavLink>
             </li>
         )

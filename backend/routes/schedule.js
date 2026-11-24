@@ -74,11 +74,21 @@ function validateMasterEvent(body) {
 }
 
 async function resolveRoom(roomId, fallbackLabel, client = db) {
-    if (!roomId) return { roomId: null, roomName: clean(fallbackLabel), maintenance: false }
+    if (!roomId) return { roomId: null, roomName: clean(fallbackLabel), maintenance: false, roomType: null }
 
-    const { rows } = await client.query("SELECT id, name, maintenance FROM rooms WHERE id = $1", [roomId])
+    const { rows } = await client.query("SELECT id, name, maintenance, room_type FROM rooms WHERE id = $1", [roomId])
     if (rows.length === 0) return null
-    return { roomId: rows[0].id, roomName: rows[0].name, maintenance: rows[0].maintenance }
+    return {
+        roomId: rows[0].id,
+        roomName: rows[0].name,
+        maintenance: rows[0].maintenance,
+        roomType: rows[0].room_type
+    }
+}
+
+const scheduleRoomTypeError = (roomType, expectedType) => {
+    if (!expectedType || !roomType || roomType === expectedType) return null
+    return `That room is a ${roomType.replace("_", " ")}. Pick a ${expectedType.replace("_", " ")} for this schedule.`
 }
 
 async function getSemesterDates(semesterId, client = db) {
@@ -369,7 +379,8 @@ router.get("/semester-schedules", requireAuth, async (req, res) => {
             `SELECT semester_schedules.*,
                     semesters.school_year,
                     semesters.term,
-                    rooms.name AS room_name
+                    rooms.name AS room_name,
+                    rooms.room_type
              FROM semester_schedules
              JOIN semesters ON semesters.id = semester_schedules.semester_id
              LEFT JOIN rooms ON rooms.id = semester_schedules.room_id
@@ -386,6 +397,32 @@ router.get("/semester-schedules", requireAuth, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Failed to load the semester schedule" })
+    }
+})
+
+router.get("/my-schedules", requireAuth, async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT semester_schedules.*,
+                   semesters.school_year,
+                   semesters.term,
+                   rooms.name AS room_name,
+                   rooms.room_type
+            FROM semester_schedules
+            JOIN semesters ON semesters.id = semester_schedules.semester_id
+            LEFT JOIN rooms ON rooms.id = semester_schedules.room_id
+            WHERE semester_schedules.instructor_id = $1
+               OR (
+                    semester_schedules.instructor_id IS NULL
+                    AND lower(trim(semester_schedules.instructor)) = lower(trim($2))
+               )
+            ORDER BY semester_schedules.day_of_week ASC, semester_schedules.start_time ASC
+        `, [req.user.id, req.user.name || ""])
+
+        res.json({ schedules: rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to load your class schedule" })
     }
 })
 
@@ -485,7 +522,9 @@ router.post("/semester-schedules", requireAuth, scheduleWrite, async (req, res) 
     try {
         const room = await resolveRoom(req.body.room_id, req.body.room)
         if (!room) return res.status(400).json({ message: "Room not found" })
-        if (room.maintenance) return res.status(409).json({ message: "That laboratory is currently under maintenance" })
+        const roomTypeError = scheduleRoomTypeError(room.roomType, req.body.room_type)
+        if (roomTypeError) return res.status(400).json({ message: roomTypeError })
+        if (room.maintenance) return res.status(409).json({ message: "That room is currently under maintenance" })
 
         const instructor = await resolveInstructor(req.body.instructor_id, req.body.instructor)
         const day = Number(req.body.day_of_week)
@@ -604,6 +643,11 @@ router.post("/semester-schedules/import", requireAuth, scheduleWrite, async (req
                 await client.query("ROLLBACK")
                 return res.status(400).json({ message: `Row ${index + 1}: room not found` })
             }
+            const roomTypeError = scheduleRoomTypeError(room.roomType, payload.room_type)
+            if (roomTypeError) {
+                await client.query("ROLLBACK")
+                return res.status(400).json({ message: `Row ${index + 1}: ${roomTypeError}` })
+            }
             if (room.maintenance) {
                 await client.query("ROLLBACK")
                 return res.status(409).json({ message: `Row ${index + 1}: ${room.roomName} is under maintenance` })
@@ -695,7 +739,9 @@ router.put("/semester-schedules/:id", requireAuth, scheduleWrite, async (req, re
     try {
         const room = await resolveRoom(req.body.room_id, req.body.room)
         if (!room) return res.status(400).json({ message: "Room not found" })
-        if (room.maintenance) return res.status(409).json({ message: "That laboratory is currently under maintenance" })
+        const roomTypeError = scheduleRoomTypeError(room.roomType, req.body.room_type)
+        if (roomTypeError) return res.status(400).json({ message: roomTypeError })
+        if (room.maintenance) return res.status(409).json({ message: "That room is currently under maintenance" })
 
         const instructor = await resolveInstructor(req.body.instructor_id, req.body.instructor)
         const day = Number(req.body.day_of_week)

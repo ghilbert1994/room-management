@@ -11,6 +11,7 @@ import { NotificationProvider } from "./auth/NotificationContext.jsx"
 import { normalizeRole } from "./auth/roles.js"
 import { SystemLoader, PageSkeleton } from "./layout/Loading.jsx"
 import { ROUTES, defaultRouteForRole, routeByPath } from "./lib/routes.js"
+import { pageTitleFor } from "./lib/pageTitles.js"
 
 function ProtectedLayout() {
     const { user, loading } = useContext(UserContext)
@@ -22,7 +23,7 @@ function ProtectedLayout() {
 
     const role = normalizeRole(user.role)
     const route = routeByPath(location.pathname)
-    const title = route?.title || "Dashboard"
+    const title = route ? pageTitleFor(route.key, role) : "Dashboard"
     const allowed = route ? route.roles.includes(role) : true
 
     return (

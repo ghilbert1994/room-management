@@ -6,30 +6,35 @@ const { notifyRoles, NOTIFY_STUDENTS } = require("../lib/facilityNotify.js")
 
 const labWrite = requireCapability("labWrite")
 
+const ROOM_TYPES = ["laboratory", "classroom"]
+
 const toPositiveInt = (value, fallback = 0) => {
     const number = Number(value)
     return Number.isInteger(number) && number >= 0 ? number : fallback
 }
 
+const toRoomType = (value) => (ROOM_TYPES.includes(value) ? value : "laboratory")
+
 router.post("/add", requireAuth, labWrite, async (req, res) => {
-    const { roomName, roomBuilding, roomCapacity, roomPCS, coordinatorId } = req.body
+    const { roomName, roomBuilding, roomCapacity, roomPCS, roomType } = req.body
 
     if (!String(roomName || "").trim() || !String(roomBuilding || "").trim()) {
         return res.status(400).json({ error: "Room name and building are required" })
     }
 
+    const type = toRoomType(roomType)
     const capacity = toPositiveInt(roomCapacity)
-    const computerCount = toPositiveInt(roomPCS)
+    const computerCount = type === "laboratory" ? toPositiveInt(roomPCS) : 0
     const client = await db.connect()
 
     try {
         await client.query("BEGIN")
 
         const { rows } = await client.query(
-            `INSERT INTO rooms (name, location, capacity, computer_count, maintenance, coordinator_id)
+            `INSERT INTO rooms (name, location, capacity, computer_count, maintenance, room_type)
              VALUES ($1, $2, $3, $4, false, $5)
              RETURNING id`,
-            [String(roomName).trim(), String(roomBuilding).trim(), capacity, computerCount, coordinatorId || null]
+            [String(roomName).trim(), String(roomBuilding).trim(), capacity, computerCount, type]
         )
 
         const roomId = rows[0].id
@@ -63,9 +68,8 @@ router.post("/add", requireAuth, labWrite, async (req, res) => {
 router.get("/all", requireAuth, async (req, res) => {
     try {
         const { rows } = await db.query(`
-            SELECT rooms.*, users.name AS coordinator_name
+            SELECT rooms.*
             FROM rooms
-            LEFT JOIN users ON rooms.coordinator_id = users.id
             ORDER BY rooms.name ASC
         `)
         res.json({ labs: rows })
@@ -75,36 +79,26 @@ router.get("/all", requireAuth, async (req, res) => {
     }
 })
 
-router.get("/get-teachers", requireAuth, labWrite, async (req, res) => {
-    try {
-        const { rows } = await db.query(
-            "SELECT id, name FROM users WHERE role IN ('faculty', 'admin') AND is_active = true ORDER BY name ASC"
-        )
-        res.json({ teachers: rows })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: "Failed to get coordinators" })
-    }
-})
-
 router.put("/edit", requireAuth, labWrite, async (req, res) => {
-    const { roomName, newRoomName, roomBuilding, roomCapacity, roomPCS, coordinatorId } = req.body
+    const { roomName, newRoomName, roomBuilding, roomCapacity, roomPCS, roomType } = req.body
 
     if (!String(roomName || "").trim() || !String(newRoomName || "").trim()) {
         return res.status(400).json({ error: "Room name is required" })
     }
 
+    const type = toRoomType(roomType)
+
     try {
         const { rowCount } = await db.query(
             `UPDATE rooms
-             SET name = $1, location = $2, capacity = $3, computer_count = $4, coordinator_id = $5
+             SET name = $1, location = $2, capacity = $3, computer_count = $4, room_type = $5
              WHERE name = $6`,
             [
                 String(newRoomName).trim(),
                 String(roomBuilding || "").trim(),
                 toPositiveInt(roomCapacity),
-                toPositiveInt(roomPCS),
-                coordinatorId || null,
+                type === "laboratory" ? toPositiveInt(roomPCS) : 0,
+                type,
                 roomName
             ]
         )

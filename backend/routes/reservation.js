@@ -2,6 +2,7 @@ const express = require("express")
 const router = express.Router()
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
+const { notifyRoles } = require("../lib/facilityNotify.js")
 
 const STATUS_VALUES = ["processing", "pending", "approved", "rejected", "no_show", "cancelled", "in_progress"]
 
@@ -59,9 +60,7 @@ const staffReservation = (reservation) => ({
     purpose_notes: reservation.purpose_notes || null,
     participants: reservation.participants,
     created_at: reservation.created_at,
-    user: reservation.user_name || reservation.user_email,
-    coordinator_id: reservation.coordinator_id,
-    coordinator_name: reservation.coordinator_name
+    user: reservation.user_name || reservation.user_email
 })
 
 // Controlled vocabulary for the purpose dropdown. Kept server-side so the
@@ -156,15 +155,13 @@ router.get("/all", requireAuth, async (req, res) => {
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
-                rooms.coordinator_id,
-                coord.name AS coordinator_name,
+                rooms.room_type,
                 users.id AS user_id,
                 users.name AS user_name,
                 users.email AS user_email
             FROM reservations
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
-            LEFT JOIN users AS coord ON rooms.coordinator_id = coord.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             ${where}
             ORDER BY reservations.time_start ASC
@@ -233,15 +230,13 @@ router.get("/get", requireAuth, async (req, res) => {
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
-                rooms.coordinator_id,
-                coord.name AS coordinator_name,
+                rooms.room_type,
                 users.id AS user_id,
                 users.name AS user_name,
                 users.email AS user_email
             FROM reservations
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
-            LEFT JOIN users AS coord ON rooms.coordinator_id = coord.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             WHERE reservations.id = $1
         `, [id])
@@ -255,6 +250,77 @@ router.get("/get", requireAuth, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to retrieve reservation" })
+    }
+})
+
+router.get("/mine", requireAuth, async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT reservations.id,
+                   reservations.time_start,
+                   reservations.time_end,
+                   reservations.status,
+                   reservations.purpose_id,
+                   reservations.purpose_notes,
+                   reservations.participants,
+                   reservations.created_at,
+                   purposes.label AS purpose_label,
+                   rooms.id AS room_id,
+                   rooms.name AS room_name,
+                   rooms.room_type,
+                   users.id AS user_id,
+                   users.name AS user_name,
+                   users.email AS user_email
+            FROM reservations
+            JOIN rooms ON rooms.id = reservations.room_id
+            JOIN users ON users.id = reservations.reserved_by
+            LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
+            WHERE reservations.reserved_by = $1
+            ORDER BY reservations.time_start DESC
+        `, [req.user.id])
+
+        res.json({ reservations: rows.map(staffReservation) })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to retrieve your reservations" })
+    }
+})
+
+router.post("/:id/follow-up", requireAuth, async (req, res) => {
+    const { id } = req.params
+    const text = String(req.body?.message || "").trim().slice(0, 500)
+
+    try {
+        const { rows } = await db.query(`
+            SELECT reservations.id,
+                   reservations.reserved_by,
+                   reservations.status,
+                   reservations.time_start,
+                   rooms.name AS room_name
+            FROM reservations
+            JOIN rooms ON rooms.id = reservations.room_id
+            WHERE reservations.id = $1
+        `, [id])
+
+        if (rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
+
+        const reservation = rows[0]
+        const isOwner = String(reservation.reserved_by) === String(req.user.id)
+        if (req.user.role !== "admin" && !isOwner) {
+            return res.status(403).json({ error: "You can only follow up on your own reservations" })
+        }
+
+        const label = `${reservation.room_name} on ${String(reservation.time_start).slice(0, 10)}`
+        const detail = text || "Please check the status of my reservation."
+        const notified = await notifyRoles(
+            ["admin"],
+            `Follow-up from ${req.user.name || req.user.email}: ${detail} (${label}, status: ${reservation.status}).`
+        )
+
+        res.json({ message: "Follow-up sent to the admin", notified })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Failed to send follow-up" })
     }
 })
 
@@ -294,10 +360,13 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
         }
 
         const roomResult = await db.query(
-            "SELECT id, name, maintenance, coordinator_id FROM rooms WHERE id = $1",
+            "SELECT id, name, maintenance, room_type FROM rooms WHERE id = $1",
             [roomId]
         )
         if (roomResult.rows.length === 0) return res.status(404).json({ error: "Laboratory not found" })
+        if (roomResult.rows[0].room_type !== "laboratory") {
+            return res.status(400).json({ error: "Only laboratories can be reserved" })
+        }
         if (roomResult.rows[0].maintenance) {
             return res.status(409).json({ error: "Laboratory is currently under maintenance" })
         }
@@ -331,13 +400,8 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
             RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants
         `, [start, end, reservedBy, roomId, reservationStatus, purpose.id, notes, participants])
 
-        const coordinatorId = roomResult.rows[0].coordinator_id
-        if (coordinatorId) {
-            await db.query(
-                "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
-                [coordinatorId, `New reservation request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`]
-            )
-        }
+        const coordinatorMessage = `New reservation request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`
+        await notifyRoles(["admin"], coordinatorMessage)
 
         res.status(201).json({
             message: "Reservation created successfully",
@@ -454,7 +518,7 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
 
     try {
         const resInfo = await db.query(`
-            SELECT reservations.reserved_by, rooms.name AS room_name, rooms.coordinator_id
+            SELECT reservations.reserved_by, rooms.name AS room_name
             FROM reservations
             JOIN rooms ON reservations.room_id = rooms.id
             WHERE reservations.id = $1
@@ -462,12 +526,7 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
 
         if (resInfo.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
 
-        const { reserved_by, room_name, coordinator_id } = resInfo.rows[0]
-        const canManageAll = req.user.role === "admin" || req.user.role === "mis_staff"
-
-        if (!canManageAll && String(coordinator_id) !== String(req.user.id)) {
-            return res.status(403).json({ error: "You can only manage reservations for laboratories you coordinate" })
-        }
+        const { reserved_by, room_name } = resInfo.rows[0]
 
         await db.query("UPDATE reservations SET status = $1 WHERE id = $2::bigint", [status, id])
 

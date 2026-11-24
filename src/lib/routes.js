@@ -8,6 +8,8 @@ const FacilityIssues = lazy(() => import("../mainpage/FacilityIssues.jsx"))
 const Settings = lazy(() => import("../mainpage/Settings.jsx"))
 const ScheduleViewer = lazy(() => import("../mainpage/ScheduleViewer.jsx"))
 const SemesterSchedule = lazy(() => import("../mainpage/SemesterSchedule.jsx"))
+const MyClassSchedule = lazy(() => import("../mainpage/MyClassSchedule.jsx"))
+const MyReservations = lazy(() => import("../mainpage/MyReservations.jsx"))
 const MasterSchedule = lazy(() => import("../mainpage/MasterSchedule.jsx"))
 const ScheduleManager = lazy(() => import("../mainpage/ScheduleManager.jsx"))
 const InviteCodes = lazy(() => import("../mainpage/InviteCodes.jsx"))
@@ -33,6 +35,13 @@ export const ROUTES = [
         title: PAGE_TITLES.classSchedule,
         component: SemesterSchedule,
         roles: permissions.pages.classSchedule
+    },
+    {
+        key: "myClassSchedule",
+        path: "/my-class-schedule",
+        title: PAGE_TITLES.myClassSchedule,
+        component: MyClassSchedule,
+        roles: permissions.pages.myClassSchedule
     },
     {
         key: "universityCalendar",
@@ -61,6 +70,13 @@ export const ROUTES = [
         title: PAGE_TITLES.manageReservations,
         component: BookingsManager,
         roles: permissions.pages.manageReservations
+    },
+    {
+        key: "myReservations",
+        path: "/my-reservations",
+        title: PAGE_TITLES.myReservations,
+        component: MyReservations,
+        roles: permissions.pages.myReservations
     },
     {
         key: "reservationHistory",

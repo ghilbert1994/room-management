@@ -10,8 +10,12 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 
 ## Key Features
 - Role-Based Access Control (RBAC): Distinct interfaces for Students, Faculty, MIS Staff, and Admins.
-- Coordinator Approval Workflow: Admins can assign Coordinators to specific labs; Coordinators approve or reject booking requests.
 - Comprehensive Reservation System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
+- Admin-Only Approvals: the admin reviews and approves or rejects every reservation request; faculty track their own submissions in My Reservations.
+- Classroom and Laboratory Rooms: rooms are typed, so class schedules can use classrooms while reservations are limited to laboratories.
+- My Class Schedule: each faculty member sees only their own weekly timetable, with day columns and time rows.
+- Teacher-First Scheduling: the admin picks a teacher, then adds or edits that teacher's classes directly on their timetable.
+- Schedule Conflict Protection: overlapping room, instructor, or section assignments are rejected, along with classroom/laboratory mismatches.
 - Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
 - Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
 - Facility Issue Notifications: putting a room under maintenance or reporting a PC broken notifies every active student, and marks the issue resolved with a follow-up notice.
@@ -32,13 +36,12 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 
 Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
-- `mis_staff` is the laboratory/room operations role. Their navigation is limited to **Facility Issues**, **Laboratory Management**, and **Settings** — room/PC maintenance plus resolving equipment reports. They do not see schedules, analytics, or reservations, and cannot create or approve bookings.
+- `mis_staff` is the laboratory/room operations role. Their navigation is limited to **Facility Issues**, **Room Management**, and **Settings** — room/PC maintenance plus resolving equipment reports. They do not see schedules, analytics, or reservations, and cannot create or approve bookings.
 
-- All signed-in users can view the **Class Schedule** and **University Calendar** (admins, faculty, students).
-- `admin` and `mis_staff` can manage laboratories and facility issues; `admin` also manages semesters, class schedule entries, the university calendar, and analytics.
-- Reservations and approvals belong to `admin` and `faculty` coordinators only. `faculty` can also report broken PCs and equipment from **Facility Issues**; `mis_staff` and `admin` resolve those reports.
-- Only `admin` can create or revoke user account codes and manage user accounts.
-- `student` accounts register freely. `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
+- `admin` sees everything. They approve every reservation, publish class schedules, manage rooms, and resolve facility reports.
+- `faculty` get **My Class Schedule** (their own timetable only), **My Reservations** (their own submissions, with cancel and follow-up), **Laboratory Reservation** to create requests, and **Report an Issue** for broken PCs and equipment.
+- `student` accounts register freely and can view the Class Schedule, Laboratory Schedule, University Calendar, and **Report an Issue**.
+- `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
 
 ### Shared Permissions
@@ -58,6 +61,8 @@ node migrations/run.js 005_class_cancellations.sql
 node migrations/run.js 006_reservation_purposes.sql
 # Only after the backend that reads reservation_purposes is deployed:
 node migrations/run.js 007_drop_legacy_purpose.sql
+node migrations/run.js 008_facility_reports.sql
+node migrations/run.js 009_room_types.sql
 ```
 
 `006_reservation_purposes.sql` is the normalization step for reservation

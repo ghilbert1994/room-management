@@ -105,9 +105,7 @@ function Dashboard() {
 
     const pendingToApprove = reservations.filter(res => {
         if (res.status !== "pending") return false;
-        if (isAdmin) return true;
-        if (isFaculty) return String(res.coordinator_id) === String(user.id);
-        return false;
+        return isAdmin;
     })
 
     const approvedCount = reservations.filter(r => r.status === "approved").length

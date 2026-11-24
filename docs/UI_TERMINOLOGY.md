@@ -20,18 +20,24 @@ the sidebar label did not match the heading inside the page, and the app mixed
 |---|---|---|
 | `/dashboard` | Overview | Dashboard |
 | `/class-schedule` | Schedules | Class Schedule |
+| `/my-class-schedule` | Schedules | My Class Schedule |
 | `/lab-schedule` | Schedules | Laboratory Schedule |
 | `/university-calendar` | Schedules | University Calendar |
 | `/bookings` | Reservations (gold button) | Laboratory Reservation |
 | `/manage-bookings` | Reservations | Manage Reservations |
+| `/my-reservations` | Reservations | My Reservations |
 | `/reservations/history` | Reservations | Reservation History |
 | `/admin/schedules` | Administration | Schedule Management |
-| `/admin/labs` | Administration | Laboratory Management |
-| `/facility-issues` | Facilities | Facility Issues |
+| `/admin/labs` | Administration | Room Management |
+| `/facility-issues` | Facilities | Facility Issues / Report an Issue |
 | `/admin/users` | Administration | User Management |
 | `/admin/registration-codes` | Administration | User Account Codes |
 | `/admin/analytics` | Administration | Analytics Reports |
 | `/settings` | System | Settings |
+
+`/facility-issues` is named by role: **Facility Issues** for admin and MIS,
+**Report an Issue** for faculty and students. The sidebar, navbar, and page
+heading all use `pageTitleFor(key, role)`.
 
 ## What was renamed
 
@@ -40,7 +46,8 @@ the sidebar label did not match the heading inside the page, and the app mixed
 | Lab Schedule (sidebar) / Laboratory Schedule Viewer (h1) | Laboratory Schedule |
 | Lab Reservation (sidebar) / Lab Reservations (h1) | Laboratory Reservation |
 | Manage Bookings / Review Lab Requests / Manage All Bookings | Manage Reservations |
-| Lab Management / Computer Laboratory Status | Laboratory Management |
+| Lab Management / Computer Laboratory Status | Room Management |
+| Facility Issues (faculty/student) | Report an Issue |
 | Settings / System Settings | Settings |
 | Analytics Reports (no heading) | Analytics Reports (heading added) |
 | "Total Bookings", "Bookings by Day", "My Upcoming Bookings" | "Total Reservations", "Reservations by Day", "My Upcoming Reservations" |
@@ -50,11 +57,13 @@ the sidebar label did not match the heading inside the page, and the app mixed
 Twelve flat sidebar rows became five sections:
 
 - **Overview** — Dashboard
-- **Schedules** — Class Schedule, Laboratory Schedule, University Calendar
-- **Reservations** — Manage Reservations, Reservation History (plus the
-  "+ New Reservation" button in the sidebar footer)
-- **Facilities** — Facility Issues (staff manage, faculty report)
-- **Administration** — Schedule Management, Laboratory Management, User Account
+- **Schedules** — My Class Schedule (faculty), Class Schedule (students/admin),
+  Laboratory Schedule, University Calendar
+- **Reservations** — Manage Reservations and Reservation History (admin),
+  My Reservations (faculty), plus the "+ New Reservation" button
+- **Facilities** — Facility Issues for staff, Report an Issue for faculty and
+  students
+- **Administration** — Schedule Management, Room Management, User Account
   Codes, User Management, Analytics Reports
 - **System** — Settings
 
@@ -72,9 +81,10 @@ Behaviour:
 ## Where a page name comes from
 
 ```
-src/lib/pageTitles.js   →  PAGE_TITLES[key]
+src/lib/pageTitles.js   →  PAGE_TITLES[key] + pageTitleFor(key, role)
         │
-        ├── src/lib/routes.js   → navbar title (App.jsx passes route.title)
+        ├── src/lib/routes.js   → routes and permissions
+        ├── src/App.jsx         → navbar title
         ├── src/layout/Sidebar.jsx → sidebar label
         └── src/mainpage/*.jsx  → page <h1>
 ```
@@ -83,9 +93,11 @@ Adding or renaming a page means editing `pageTitles.js` and `routes.js` only.
 
 ## Role-specific navigation
 
-- **Admin** — every page, grouped into the five sections above.
-- **Faculty** — Dashboard, Schedules, Reservations, Facility Issues (report form), Settings.
-- **MIS staff** — only Facility Issues, Laboratory Management, and Settings. Because
+- **Admin** — every page, grouped into the six sections above.
+- **Faculty** — Dashboard, Schedules (My Class Schedule, Laboratory Schedule,
+  University Calendar), My Reservations, Report an Issue, Settings.
+- **MIS staff** — only Facility Issues, Room Management, and Settings. Because
   each of those is a single-page group, they render as plain links with no
   dropdown headers.
-- **Student** — Class Schedule, Laboratory Schedule, University Calendar, Settings.
+- **Student** — Class Schedule, Laboratory Schedule, University Calendar,
+  Report an Issue, Settings.

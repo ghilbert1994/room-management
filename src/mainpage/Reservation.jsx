@@ -154,7 +154,7 @@ function Reservation() {
         }
 
         setForm({
-            roomId: filterRoom !== "all" ? filterRoom : "", 
+            roomId: labs.some((lab) => String(lab.id) === String(filterRoom) && (lab.room_type || "laboratory") === "laboratory") ? filterRoom : "", 
             timeStart: formatDateTime(start),
             timeEnd: formatDateTime(adjustedEnd),
             purposeId: "",
@@ -263,7 +263,7 @@ function Reservation() {
 
             setShowAddModal(false)
             setForm({ roomId: "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
-            setNotice("Reservation submitted. It is pending until a coordinator approves it.")
+            setNotice("Reservation submitted. It is pending until the admin approves it.")
             await fetchReservations()
             notifyBookingsChanged()
         } catch (error) {
@@ -378,7 +378,7 @@ function Reservation() {
                         setError("")
                         setFormError("")
                         setNotice("")
-                        setForm({ roomId: filterRoom !== "all" ? filterRoom : "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
+                        setForm({ roomId: labs.some((lab) => String(lab.id) === String(filterRoom) && (lab.room_type || "laboratory") === "laboratory") ? filterRoom : "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
                         setShowAddModal(true)
                     }}>
                         New Reservation
@@ -530,11 +530,13 @@ function Reservation() {
                                     <label htmlFor="roomId">Laboratory</label>
                                     <select id="roomId" name="roomId" value={form.roomId} onChange={handleChange} required>
                                         <option value="">Select laboratory</option>
-                                        {labs.map((lab) => (
-                                            <option key={lab.id} value={lab.id} disabled={lab.maintenance} style={{color: lab.maintenance ? '#dc2626' : 'inherit'}}>
-                                                {lab.name} {lab.maintenance ? "🚫 (Under Maintenance)" : ""}
-                                            </option>
-                                        ))}
+                                        {labs
+                                            .filter((lab) => (lab.room_type || "laboratory") === "laboratory")
+                                            .map((lab) => (
+                                                <option key={lab.id} value={lab.id} disabled={lab.maintenance} style={{color: lab.maintenance ? '#dc2626' : 'inherit'}}>
+                                                    {lab.name} {lab.maintenance ? "🚫 (Under Maintenance)" : ""}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
 

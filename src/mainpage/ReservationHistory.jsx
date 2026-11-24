@@ -4,7 +4,6 @@ import { Link } from "react-router-dom"
 import Card from "./Card"
 import { Search, MapPin, ClipboardList, Download } from "lucide-react"
 import { UserContext } from "../auth/UserContext.jsx"
-import { normalizeRole } from "../auth/roles.js"
 import { PageSkeleton } from "../layout/Loading.jsx"
 import { subscribeToDataChanges } from "../lib/dataEvents.js"
 import { PAGE_TITLES } from "../lib/pageTitles.js"
@@ -45,7 +44,7 @@ const statusLabel = (status) => String(status || "").replace(/_/g, " ")
 const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`
 
 function ReservationHistory() {
-    const { user, labs } = useContext(UserContext)
+    const { labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
     const [loading, setLoading] = useState(true)
     const [status, setStatus] = useState("all")
@@ -76,14 +75,11 @@ function ReservationHistory() {
         return subscribeToDataChanges("bookings:changed", fetchHistory)
     }, [])
 
-    const isTeacher = normalizeRole(user?.role) === "faculty"
-
     const rows = useMemo(() => {
         const needle = search.trim().toLowerCase()
 
         return reservations
             .filter((reservation) => {
-                if (isTeacher && String(reservation.coordinator_id) !== String(user.id)) return false
                 if (status !== "all" && reservation.status !== status) return false
                 if (room !== "all" && String(reservation.room) !== String(room)) return false
 
@@ -96,7 +92,7 @@ function ReservationHistory() {
                     .some((value) => String(value || "").toLowerCase().includes(needle))
             })
             .sort((a, b) => parseLocal(b.start) - parseLocal(a.start))
-    }, [reservations, isTeacher, user, status, room, from, to, search])
+    }, [reservations, status, room, from, to, search])
 
     const exportCsv = () => {
         const header = ["Laboratory", "Reserved By", "Purpose", "Notes", "Participants", "Start", "End", "Status", "Requested On"]
@@ -244,7 +240,6 @@ function ReservationHistory() {
                             <tr style={{ borderBottom: "2px solid var(--border)" }}>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Laboratory</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Reserved By</th>
-                                {!isTeacher && <th style={{ padding: "12px", color: "var(--text-muted)" }}>Coordinator</th>}
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Schedule</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Details</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Status</th>
@@ -254,7 +249,7 @@ function ReservationHistory() {
                         <tbody>
                             {rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={isTeacher ? 6 : 7} style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)" }}>
+                                    <td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)" }}>
                                         No archived reservations match these filters.
                                     </td>
                                 </tr>
@@ -273,7 +268,6 @@ function ReservationHistory() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: "12px", color: "var(--text-soft)" }}>{reservation.user}</td>
-                                            {!isTeacher && <td style={{ padding: "12px", color: "var(--text-muted)" }}>{reservation.coordinator_name || "None"}</td>}
                                             <td style={{ padding: "12px", fontSize: "13px" }}>
                                                 <div style={{ color: "var(--text-soft)", fontWeight: "bold" }}>{start.toLocaleDateString()}</div>
                                                 <div style={{ color: "var(--text-muted)" }}>

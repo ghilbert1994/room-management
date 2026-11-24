@@ -92,23 +92,25 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 | Page / action | Admin | Faculty | MIS Staff | Student |
 |---|---|---|---|---|
 | Dashboard | Yes | Yes | No | No (redirects to Class Schedule) |
-| Class Schedule | Yes | Yes | No | Yes |
+| Class Schedule | Yes | No (uses My Class Schedule) | No | Yes |
+| My Class Schedule | No | Yes | No | No |
 | University Calendar | Yes | Yes | No | Yes |
 | Lab Schedule | Yes | Yes | No | Yes |
 | Lab Reservation | Yes | Yes | No | No |
-| Manage Bookings (now Manage Reservations) | Yes | Yes | No | No |
-| Reservation History | Yes | Yes | No | No |
+| Manage Bookings (now Manage Reservations) | Yes | No | No | No |
+| My Reservations | No | Yes | No | No |
+| Reservation History | Yes | No | No | No |
 | Manage Schedules | Yes | No | No | No |
 | User Account Codes | Yes | No | No | No |
 | User Management | Yes | No | No | No |
-| Lab Management | Yes | No | Yes | No |
-| Facility Issues | Yes | Yes (report only) | Yes | No |
+| Room Management | Yes | No | Yes | No |
+| Facility Issues / Report an Issue | Yes | Yes (report only) | Yes | Yes (report only) |
 | Analytics Reports | Yes | No | No | No |
 | Settings | Yes | Yes | Yes | Yes |
 
-- [ ] Log in as `student@example.com` → lands on `/class-schedule`; sidebar has no admin or booking items.
+- [ ] Log in as `student@example.com` → lands on `/class-schedule`; sidebar has no admin or booking items, but includes **Report an Issue**.
 - [ ] Manually open `/admin/schedules` as the student → redirected to `/class-schedule`.
-- [ ] Log in as `teacher@gmail.com` → `/dashboard`; sidebar has bookings but no admin items.
+- [ ] Log in as `teacher@gmail.com` → `/dashboard`; sidebar has **My Class Schedule**, **My Reservations**, and **Report an Issue**, and no Manage Reservations.
 - [ ] Manually open `/admin/labs` as faculty → redirected to `/dashboard`.
 
 ---
@@ -170,7 +172,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### Class entries
 - [ ] **Class Schedule** tab → **Add Class**.
-- [ ] Semester, course, year level, section, room dropdown, subject code, subject, instructor dropdown, day, start/end time are present.
+- [ ] Semester, course, year level, section, room type, room dropdown, subject code, subject, instructor dropdown, day, start/end time are present.
+- [ ] Room type **Classroom** shows only classrooms; **Laboratory** shows only laboratories.
+- [ ] Picking a classroom but sending it as a laboratory (or the reverse) → rejected with a type mismatch message.
 - [ ] Instructor dropdown lists active faculty accounts plus `Unassigned / TBA`.
 - [ ] Imported/entered instructor names are linked to the matching faculty account (so that instructor can cancel their class dates).
 - [ ] Save → the entry appears in **Class Schedule**.
@@ -183,6 +187,29 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Create a future reservation, then add a class over it → rejected (`already has a reservation`).
 - [ ] Use a semester with no start/end dates → rejected with a clear message.
 - [ ] Delete the entry → removed.
+
+### Teacher schedules (admin)
+- [ ] **Schedule Management → Teacher Schedules** → the faculty list appears.
+- [ ] Click a teacher → their weekly timetable and class list load.
+- [ ] **Add Class** opens the editor with that instructor already selected.
+- [ ] The new class appears on the teacher's timetable and in **My Class Schedule** for that account.
+- [ ] Edit/Delete from the teacher timetable updates the school-wide Class Schedule too.
+- [ ] A teacher with two classes in one slot is blocked (instructor overlap).
+
+### Classrooms
+- [ ] **Room Management → Register New Room** → choose **Classroom**.
+- [ ] The PC count field disappears for a classroom and the card shows a Classroom badge with no PC layout button.
+- [ ] Classroom appears in the class schedule room dropdown and **not** in the Laboratory Reservation room dropdown.
+- [ ] Registering the same room as **Laboratory** shows the PC count field again.
+
+### Faculty views
+- [ ] Log in as `teacher@gmail.com` → **My Class Schedule** shows only that teacher's classes, in a weekly time grid plus a class list.
+- [ ] Move to another week → the recurring classes appear on their weekday.
+- [ ] **My Reservations** lists only that teacher's own reservations.
+- [ ] Cancel one pending/approved request → status updates.
+- [ ] **Follow up** on a pending request → the admin receives a notification.
+- [ ] The sidebar has no **Manage Reservations** or **Reservation History**.
+- [ ] Faculty cannot approve: `PUT /api/reservation/update-status` returns `403`.
 
 ### CSV import
 - [ ] Click **Import CSV**.
@@ -249,10 +276,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Faculty cannot resolve or dismiss reports (`403`), and MIS has no reservation pages.
 
 ### Manage bookings
-- [ ] As admin, see all active reservations (pending/future); approve/reject and confirm status changes.
-- [ ] As faculty, only see bookings for labs you coordinate.
-- [ ] Faculty cannot change bookings for labs they do not coordinate.
-- [ ] Status changes create a notification for the booking owner.
+- [ ] As admin, see every active reservation (pending/future); approve/reject and confirm status changes.
+- [ ] Only admin can approve or reject (`PUT /api/reservation/update-status`); faculty and MIS get `403`.
+- [ ] Status changes create a notification for the reservation owner.
 - [ ] Approving/rejecting updates the Dashboard counters and other open booking tabs without a manual refresh.
 
 ### Purpose dropdown (controlled vocabulary)
@@ -312,6 +338,10 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] The live status shows **Currently In Use** for an active class or **Next Booking / Class** with the instructor name.
 - [ ] Student booking data is redacted: bookings show `Reserved` instead of names/purposes.
 - [ ] Student cannot access `/bookings`, `/admin/*`, or `/manage-bookings`.
+- [ ] **Report an Issue** is in the sidebar → submit a report for a room and for a PC.
+- [ ] The report appears in **My Reports** with status `open`.
+- [ ] The report appears for MIS/Admin under **Reported Issues** on Facility Issues.
+- [ ] Student cannot resolve or dismiss a report (`403`).
 
 ---
 
