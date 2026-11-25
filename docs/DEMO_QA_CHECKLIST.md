@@ -175,6 +175,16 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] In development the API log prints `[password-reset] <email>: http://.../reset-password?token=...`.
 - [ ] **Dismiss** a request → it disappears and its links stop working.
 
+### Activity Log
+- [ ] Log in as admin → **Administration → Activity Log**.
+- [ ] Signing in adds a `login` entry with the user, role, time, and IP.
+- [ ] A wrong password adds a `login_failed` entry.
+- [ ] Creating, updating, or deleting a reservation, room, schedule entry, user, report, or account code adds the matching entry.
+- [ ] Filter by search, action, entity, and date range; Reset clears them.
+- [ ] Pagination moves between pages and the count matches.
+- [ ] Export offers CSV, Excel (.xls), and PDF and includes the filtered rows.
+- [ ] Faculty/MIS/students get `403` from `/api/admin/activity-logs` and cannot open the page.
+
 ---
 
 ## 5. Schedules (admin)

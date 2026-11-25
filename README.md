@@ -35,6 +35,7 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - User Account Codes: Hashed, expiring, revocable codes protect Faculty, Admin, and MIS Staff sign-ups.
 - User Management: Admins can change roles, deactivate accounts, and issue temporary passwords.
 - Password Reset: a Forgot Password page creates a single-use, 60-minute reset link; admins can generate the link from User Management when email delivery is not configured.
+- Activity Log: append-only audit trail for admins covering sign-ins, failed attempts, and create/update/delete actions across reservations, rooms, schedules, users, reports, and account codes, with filters and CSV/Excel/PDF export.
 - Bulk Schedule Import: Paste or upload CSV to publish class schedules quickly.
 
 ## Schedules and Role-Based Access
@@ -72,6 +73,7 @@ node migrations/run.js 010_facility_report_attachments.sql
 node migrations/run.js 011_sections.sql
 node migrations/run.js 012_password_resets.sql
 node migrations/run.js 013_reservation_cancellations.sql
+node migrations/run.js 014_activity_logs.sql
 ```
 
 `006_reservation_purposes.sql` is the normalization step for reservation
@@ -93,6 +95,12 @@ npm run seed:demo
 ```
 
 This creates a `2026-2027 1st Semester`, sample class entries using existing laboratories, and university calendar events. It is idempotent.
+
+Demo activity-log entries (skip when the table already has rows; add `--force` to append anyway):
+
+```bash
+npm run seed:activity
+```
 
 ## Architecture
 

@@ -8,6 +8,7 @@
     "dev": "cross-env NODE_ENV=development node --watch server.js",
     "migrate": "node migrations/run.js",
     "seed:demo": "node scripts/seed-demo.js",
+    "seed:activity": "node scripts/seed-activity-logs.js",
     "test": "node --test"
   },
   "keywords": [],

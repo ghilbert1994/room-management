@@ -1,6 +1,7 @@
 const express = require("express")
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const router = express.Router()
 const scheduleWrite = requireCapability("scheduleWrite")
@@ -281,6 +282,14 @@ router.post("/semesters", requireAuth, scheduleWrite, async (req, res) => {
         )
 
         await client.query("COMMIT")
+        await logActivity({
+            req,
+            action: "semester.create",
+            entityType: "semester",
+            entityId: rows[0].id,
+            description: `Created semester ${req.body.school_year} ${req.body.term}`
+        })
+
         res.status(201).json({ semester: rows[0] })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
@@ -324,6 +333,14 @@ router.put("/semesters/:id", requireAuth, scheduleWrite, async (req, res) => {
         }
 
         await client.query("COMMIT")
+        await logActivity({
+            req,
+            action: "semester.update",
+            entityType: "semester",
+            entityId: req.params.id,
+            description: `Updated semester #${req.params.id} (${req.body.school_year} ${req.body.term})`
+        })
+
         res.json({ semester: rows[0] })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
@@ -339,6 +356,14 @@ router.delete("/semesters/:id", requireAuth, scheduleWrite, async (req, res) => 
     try {
         const { rowCount } = await db.query("DELETE FROM semesters WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Semester not found" })
+        await logActivity({
+            req,
+            action: "semester.delete",
+            entityType: "semester",
+            entityId: req.params.id,
+            description: `Deleted semester #${req.params.id}`
+        })
+
         res.json({ message: "Semester deleted" })
     } catch (error) {
         console.error(error)
@@ -616,6 +641,15 @@ router.post("/semester-schedules", requireAuth, scheduleWrite, async (req, res) 
 
         await upsertSection(req.body.course, req.body.year_level, req.body.section)
 
+        await logActivity({
+            req,
+            action: "schedule.create",
+            entityType: "schedule",
+            entityId: rows[0].id,
+            description: `Added ${req.body.subject} (${req.body.course} ${req.body.section}) on day ${req.body.day_of_week} ${req.body.start_time}-${req.body.end_time}`,
+            metadata: { room: room.roomName, instructor: instructor.name }
+        })
+
         res.status(201).json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)
@@ -742,6 +776,13 @@ router.post("/semester-schedules/import", requireAuth, scheduleWrite, async (req
         }
 
         await client.query("COMMIT")
+        await logActivity({
+            req,
+            action: "schedule.import",
+            entityType: "schedule",
+            description: `Imported ${entries.length} class schedule entr${entries.length === 1 ? "y" : "ies"}`
+        })
+
         res.status(201).json({ message: `Imported ${entries.length} schedule entries`, imported: entries.length })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
@@ -842,6 +883,14 @@ router.put("/semester-schedules/:id", requireAuth, scheduleWrite, async (req, re
 
         await upsertSection(req.body.course, req.body.year_level, req.body.section)
 
+        await logActivity({
+            req,
+            action: "schedule.update",
+            entityType: "schedule",
+            entityId: req.params.id,
+            description: `Updated class entry #${req.params.id} (${req.body.subject})`
+        })
+
         res.json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)
@@ -854,6 +903,14 @@ router.delete("/semester-schedules/:id", requireAuth, scheduleWrite, async (req,
     try {
         const { rowCount } = await db.query("DELETE FROM semester_schedules WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Schedule entry not found" })
+        await logActivity({
+            req,
+            action: "schedule.delete",
+            entityType: "schedule",
+            entityId: req.params.id,
+            description: `Deleted class entry #${req.params.id}`
+        })
+
         res.json({ message: "Schedule entry deleted" })
     } catch (error) {
         console.error(error)
@@ -893,6 +950,15 @@ router.post("/semester-schedules/:id/cancel", requireAuth, async (req, res) => {
             RETURNING *
         `, [schedule.id, date, reason, req.user.id])
 
+        await logActivity({
+            req,
+            action: "schedule.cancel_class",
+            entityType: "schedule",
+            entityId: req.params.id,
+            description: `Cancelled one class date for schedule #${req.params.id}`,
+            metadata: { date: req.body?.date || null, reason: req.body?.reason || null }
+        })
+
         res.json({ message: "Class canceled for that date", cancellation: rows[0] })
     } catch (error) {
         console.error(error)
@@ -918,6 +984,14 @@ router.delete("/semester-schedules/:id/cancel", requireAuth, async (req, res) =>
         )
 
         if (rowCount === 0) return res.status(404).json({ message: "No cancellation found for that date" })
+        await logActivity({
+            req,
+            action: "schedule.restore_class",
+            entityType: "schedule",
+            entityId: req.params.id,
+            description: `Restored a cancelled class date for schedule #${req.params.id}`
+        })
+
         res.json({ message: "Class date restored" })
     } catch (error) {
         console.error(error)
@@ -989,6 +1063,14 @@ router.post("/master-events", requireAuth, scheduleWrite, async (req, res) => {
             ]
         )
 
+        await logActivity({
+            req,
+            action: "event.create",
+            entityType: "event",
+            entityId: rows[0].id,
+            description: `Added calendar event "${req.body.title}"`
+        })
+
         res.status(201).json({ event: rows[0] })
     } catch (error) {
         console.error(error)
@@ -1025,6 +1107,14 @@ router.put("/master-events/:id", requireAuth, scheduleWrite, async (req, res) =>
         )
 
         if (rows.length === 0) return res.status(404).json({ message: "Calendar event not found" })
+        await logActivity({
+            req,
+            action: "event.update",
+            entityType: "event",
+            entityId: req.params.id,
+            description: `Updated calendar event "${req.body.title}"`
+        })
+
         res.json({ event: rows[0] })
     } catch (error) {
         console.error(error)
@@ -1036,6 +1126,14 @@ router.delete("/master-events/:id", requireAuth, scheduleWrite, async (req, res)
     try {
         const { rowCount } = await db.query("DELETE FROM master_schedule_events WHERE id = $1", [req.params.id])
         if (rowCount === 0) return res.status(404).json({ message: "Calendar event not found" })
+        await logActivity({
+            req,
+            action: "event.delete",
+            entityType: "event",
+            entityId: req.params.id,
+            description: `Deleted calendar event #${req.params.id}`
+        })
+
         res.json({ message: "Calendar event deleted" })
     } catch (error) {
         console.error(error)

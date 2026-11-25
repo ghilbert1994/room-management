@@ -18,6 +18,7 @@ import {
     KeyRound,
     Users,
     History,
+    ScrollText,
     ChevronDown,
     X
 } from 'lucide-react'
@@ -40,6 +41,7 @@ const ROUTE_ICONS = {
     scheduleManager: ShieldCheck,
     inviteCodes: KeyRound,
     userManagement: Users,
+    activityLog: ScrollText,
     labManagement: RobotArm,
     facilityIssues: Wrench,
     analytics: ChartBar,
@@ -53,7 +55,7 @@ const NAV_GROUPS = [
     { id: "schedules", label: "Schedules", keys: ["myClassSchedule", "classSchedule", "labSchedule", "universityCalendar"] },
     { id: "reservations", label: "Reservations", keys: ["manageReservations", "myReservations", "reservationHistory"] },
     { id: "facilities", label: "Facilities", keys: ["facilityIssues"] },
-    { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "inviteCodes", "userManagement", "analytics"] },
+    { id: "administration", label: "Administration", keys: ["scheduleManager", "labManagement", "inviteCodes", "userManagement", "activityLog", "analytics"] },
     { id: "system", label: "System", keys: ["settings"] }
 ]
 

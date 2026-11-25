@@ -16,7 +16,8 @@
     "myReservations": ["faculty"],
     "scheduleManager": ["admin"],
     "inviteCodes": ["admin"],
-    "userManagement": ["admin"]
+    "userManagement": ["admin"],
+    "activityLog": ["admin"]
   },
   "capabilities": {
     "scheduleWrite": ["admin", "mis_staff"],

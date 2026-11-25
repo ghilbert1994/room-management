@@ -14,6 +14,7 @@ const MasterSchedule = lazy(() => import("../mainpage/MasterSchedule.jsx"))
 const ScheduleManager = lazy(() => import("../mainpage/ScheduleManager.jsx"))
 const InviteCodes = lazy(() => import("../mainpage/InviteCodes.jsx"))
 const UserManagement = lazy(() => import("../mainpage/UserManagement.jsx"))
+const ActivityLog = lazy(() => import("../mainpage/ActivityLog.jsx"))
 const AnalyticsReports = lazy(() => import("../mainpage/AnalyticsReports.jsx"))
 const Reservation = lazy(() => import("../mainpage/Reservation.jsx"))
 const BookingsManager = lazy(() => import("../mainpage/BookingsManager.jsx"))
@@ -105,6 +106,13 @@ export const ROUTES = [
         title: PAGE_TITLES.userManagement,
         component: UserManagement,
         roles: permissions.pages.userManagement
+    },
+    {
+        key: "activityLog",
+        path: "/admin/activity-log",
+        title: PAGE_TITLES.activityLog,
+        component: ActivityLog,
+        roles: permissions.pages.activityLog
     },
     {
         key: "labManagement",

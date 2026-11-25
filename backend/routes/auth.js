@@ -6,6 +6,7 @@ const db = require("../db.js")
 const permissions = require("../../shared/permissions.json")
 const { requireAuth, requireCapability, normalizeRole } = require("../middleware/auth.js")
 const { authLimiter } = require("../middleware/rateLimit.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const router = express.Router()
 
@@ -83,17 +84,55 @@ router.post("/login", authLimiter, async (req, res) => {
         `, [email])
         const user = rows[0]
 
-        if (!user) return res.status(401).json({ message: "Invalid email or password" })
+        if (!user) {
+            await logActivity({
+                req,
+                actor: { email },
+                action: "login_failed",
+                entityType: "auth",
+                description: `Failed sign-in for ${email}`,
+                metadata: { reason: "unknown_email" }
+            })
+            return res.status(401).json({ message: "Invalid email or password" })
+        }
 
         if (user.is_active === false) {
+            await logActivity({
+                req,
+                actor: { id: user.id, name: user.name, email: user.email, role: normalizeRole(user.role) },
+                action: "login_blocked",
+                entityType: "auth",
+                entityId: user.id,
+                description: `${user.email} tried to sign in but the account is deactivated`
+            })
             return res.status(403).json({ message: "This account has been deactivated" })
         }
 
         const match = await bcrypt.compare(parsed.data.password, user.password).catch(() => false)
-        if (!match) return res.status(401).json({ message: "Invalid email or password" })
+        if (!match) {
+            await logActivity({
+                req,
+                actor: { id: user.id, name: user.name, email: user.email, role: normalizeRole(user.role) },
+                action: "login_failed",
+                entityType: "auth",
+                entityId: user.id,
+                description: `Failed sign-in for ${email}`,
+                metadata: { reason: "wrong_password" }
+            })
+            return res.status(401).json({ message: "Invalid email or password" })
+        }
 
         await regenerateSession(req)
         req.session.userId = user.id
+
+        await logActivity({
+            req,
+            actor: { id: user.id, name: user.name, email: user.email, role: normalizeRole(user.role) },
+            action: "login",
+            entityType: "auth",
+            entityId: user.id,
+            description: `${user.name || user.email} signed in`
+        })
 
         res.json({
             message: "Login successful",
@@ -150,6 +189,15 @@ router.post("/forgot-password", authLimiter, async (req, res) => {
                 SELECT id, $1 FROM users WHERE role = 'admin' AND is_active = true
             `, [`Password reset requested for ${user.email}. Open User Management to create a reset link.`])
 
+            await logActivity({
+                req,
+                actor: { id: user.id, name: user.name, email: user.email },
+                action: "password_reset_requested",
+                entityType: "user",
+                entityId: user.id,
+                description: `Password reset requested for ${user.email}`
+            })
+
             // No mail service is configured yet: the link is logged locally and
             // admins can generate a fresh one from User Management.
             if (process.env.NODE_ENV !== "production") {
@@ -193,11 +241,26 @@ router.post("/reset-password", authLimiter, async (req, res) => {
 
         const userId = rows[0].user_id
 
+        const userRows = await db.query(
+            "SELECT id, name, email, role::text AS role FROM users WHERE id = $1",
+            [userId]
+        )
+        const actor = userRows.rows[0] || { id: userId }
+
         await db.query(
             "UPDATE users SET password = $1, updated_at = now() WHERE id = $2",
             [hashedPassword, userId]
         )
         await db.query("DELETE FROM session WHERE sess->>'userId' = $1", [String(userId)])
+
+        await logActivity({
+            req,
+            actor,
+            action: "password_reset",
+            entityType: "user",
+            entityId: userId,
+            description: `Password reset completed for ${actor.email || `user #${userId}`}`
+        })
 
         res.json({ message: "Password updated. You can sign in with the new password." })
     } catch (error) {
@@ -297,6 +360,15 @@ router.post("/register", authLimiter, async (req, res) => {
         await regenerateSession(req)
         req.session.userId = rows[0].id
 
+        await logActivity({
+            req,
+            actor: { id: rows[0].id, name: rows[0].name, email: rows[0].email, role: normalizeRole(rows[0].role) },
+            action: "register",
+            entityType: "user",
+            entityId: rows[0].id,
+            description: `New ${requestedRole} account registered: ${rows[0].email}`
+        })
+
         res.status(201).json({
             message: "Account created successfully",
             user: {
@@ -386,6 +458,14 @@ router.post("/invites", requireAuth, requireCapability("inviteManage"), async (r
             [targetRole, codeHash, label || null, uses, expiresAt, req.user.id]
         )
 
+        await logActivity({
+            req,
+            action: "invite.create",
+            entityType: "invite_code",
+            entityId: rows[0].id,
+            description: `Created a ${targetRole} user account code${label ? ` (${label})` : ""}`
+        })
+
         res.status(201).json({
             message: "User account code created",
             code,
@@ -410,6 +490,14 @@ router.post("/invites/:id/revoke", requireAuth, requireCapability("inviteManage"
         if (rows.length === 0) {
             return res.status(404).json({ message: "User account code not found or already revoked" })
         }
+
+        await logActivity({
+            req,
+            action: "invite.revoke",
+            entityType: "invite_code",
+            entityId: req.params.id,
+            description: `Revoked user account code #${req.params.id}`
+        })
 
         res.json({ message: "User account code revoked" })
     } catch (error) {
@@ -494,6 +582,15 @@ router.put("/change-password", requireAuth, async (req, res) => {
 
         const hashedNewPassword = await bcrypt.hash(newPassword, 10)
         await db.query("UPDATE users SET password = $1, updated_at = now() WHERE id = $2", [hashedNewPassword, req.user.id])
+
+        await logActivity({
+            req,
+            action: "password_change",
+            entityType: "user",
+            entityId: req.user.id,
+            description: `${req.user.name || req.user.email} changed their password`
+        })
+
         res.json({ message: "Password changed successfully" })
     } catch (error) {
         console.error(error)
@@ -501,9 +598,32 @@ router.put("/change-password", requireAuth, async (req, res) => {
     }
 })
 
-router.post("/logout", (req, res) => {
-    req.session.destroy(err => {
+router.post("/logout", async (req, res) => {
+    const userId = req.session.userId
+    let actor = null
+
+    if (userId) {
+        const { rows } = await db.query(
+            "SELECT id, name, email, role::text AS role FROM users WHERE id = $1",
+            [userId]
+        )
+        actor = rows[0] || null
+    }
+
+    req.session.destroy(async (err) => {
         if (err) return res.status(500).json({ message: "Logout failed" })
+
+        if (actor) {
+            await logActivity({
+                req,
+                actor,
+                action: "logout",
+                entityType: "auth",
+                entityId: actor.id,
+                description: `${actor.name || actor.email} signed out`
+            })
+        }
+
         res.clearCookie("connect.sid", {
             httpOnly: true,
             sameSite: "lax",

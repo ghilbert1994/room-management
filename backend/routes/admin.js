@@ -4,6 +4,7 @@ const crypto = require("crypto")
 const db = require("../db.js")
 const permissions = require("../../shared/permissions.json")
 const { requireAuth, requireCapability, normalizeRole } = require("../middleware/auth.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const router = express.Router()
 
@@ -67,6 +68,15 @@ router.put("/users/:id/role", adminOnly, async (req, res) => {
             [role, req.params.id]
         )
 
+        await logActivity({
+            req,
+            action: "user.role",
+            entityType: "user",
+            entityId: req.params.id,
+            description: `Changed role for ${rows[0].email} to ${role}`,
+            metadata: { role }
+        })
+
         res.json({ user: { ...rows[0], role: normalizeRole(rows[0].role) } })
     } catch (error) {
         console.error(error)
@@ -90,6 +100,15 @@ router.put("/users/:id/active", adminOnly, async (req, res) => {
         )
 
         if (rows.length === 0) return res.status(404).json({ message: "User not found" })
+
+        await logActivity({
+            req,
+            action: "user.status",
+            entityType: "user",
+            entityId: req.params.id,
+            description: `${isActive ? "Activated" : "Deactivated"} account ${rows[0].email}`,
+            metadata: { is_active: isActive }
+        })
 
         res.json({ user: { ...rows[0], role: normalizeRole(rows[0].role) } })
     } catch (error) {
@@ -116,6 +135,14 @@ router.post("/users/:id/reset-password", adminOnly, async (req, res) => {
         )
 
         if (rows.length === 0) return res.status(404).json({ message: "User not found" })
+
+        await logActivity({
+            req,
+            action: "user.reset_password",
+            entityType: "user",
+            entityId: req.params.id,
+            description: `Issued a temporary password for ${rows[0].email}`
+        })
 
         res.json({
             message: "Password reset",
@@ -153,10 +180,82 @@ router.put("/users/:id/section", adminOnly, async (req, res) => {
             [sectionId, req.params.id]
         )
 
+        await logActivity({
+            req,
+            action: "user.section",
+            entityType: "user",
+            entityId: req.params.id,
+            description: `Set section for ${rows[0].email} to ${rows[0].section_label || "none"}`,
+            metadata: { section_id: sectionId }
+        })
+
         res.json({ user: { ...rows[0], role: normalizeRole(rows[0].role) } })
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Failed to update the user section" })
+    }
+})
+
+router.get("/activity-logs", adminOnly, async (req, res) => {
+    const { q, action, entity, from, to } = req.query
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200)
+    const page = Math.max(Number(req.query.page) || 1, 1)
+    const offset = (page - 1) * limit
+
+    const conditions = []
+    const values = []
+
+    if (q) {
+        values.push(`%${String(q).trim()}%`)
+        const index = values.length
+        conditions.push(`(description ILIKE $${index} OR actor_name ILIKE $${index} OR actor_email ILIKE $${index} OR action ILIKE $${index})`)
+    }
+    if (action) {
+        values.push(String(action))
+        conditions.push(`action = $${values.length}`)
+    }
+    if (entity) {
+        values.push(String(entity))
+        conditions.push(`entity_type = $${values.length}`)
+    }
+    if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) {
+        values.push(from)
+        conditions.push(`created_at >= $${values.length}::date`)
+    }
+    if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+        values.push(to)
+        conditions.push(`created_at < ($${values.length}::date + interval '1 day')`)
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""
+
+    try {
+        const [countResult, logsResult, actionsResult, entitiesResult] = await Promise.all([
+            db.query(`SELECT count(*)::int AS total FROM activity_logs ${where}`, values),
+            db.query(
+                `SELECT id, user_id, actor_name, actor_email, actor_role, action, entity_type, entity_id,
+                        description, metadata, ip_address, created_at
+                 FROM activity_logs
+                 ${where}
+                 ORDER BY created_at DESC
+                 LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+                [...values, limit, offset]
+            ),
+            db.query("SELECT DISTINCT action FROM activity_logs ORDER BY action"),
+            db.query("SELECT DISTINCT entity_type FROM activity_logs WHERE entity_type IS NOT NULL ORDER BY entity_type")
+        ])
+
+        res.json({
+            logs: logsResult.rows,
+            total: countResult.rows[0].total,
+            page,
+            limit,
+            actions: actionsResult.rows.map((row) => row.action),
+            entities: entitiesResult.rows.map((row) => row.entity_type)
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to load the activity log" })
     }
 })
 

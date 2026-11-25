@@ -20,6 +20,7 @@ export const PAGE_TITLES = {
     scheduleManager: "Schedule Management",
     inviteCodes: "User Account Codes",
     userManagement: "User Management",
+    activityLog: "Activity Log",
     labManagement: "Room Management",
     facilityIssues: "Facility Issues",
     analytics: "Analytics Reports",

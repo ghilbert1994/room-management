@@ -3,6 +3,7 @@ const router = express.Router()
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
 const { notifyRoles, NOTIFY_STUDENTS } = require("../lib/facilityNotify.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const labWrite = requireCapability("labWrite")
 
@@ -49,11 +50,21 @@ router.post("/add", requireAuth, labWrite, async (req, res) => {
         }
 
         await client.query("COMMIT")
+
+        await logActivity({
+            req,
+            action: "room.create",
+            entityType: "room",
+            entityId: roomId,
+            description: `Created ${type} ${String(roomName).trim()} (${String(roomBuilding).trim()})`,
+            metadata: { roomType: type, capacity, computers: computerCount }
+        })
+
         res.status(201).json({ message: "Lab added successfully", roomId })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
         if (error.code === "23505") {
-            return res.status(409).json({ error: "A laboratory with this room name already exists" })
+            return res.status(409).json({ error: "A room with this room name already exists" })
         }
         if (error.code === "23503") {
             return res.status(400).json({ error: "The selected coordinator was not found" })
@@ -103,9 +114,19 @@ router.put("/edit", requireAuth, labWrite, async (req, res) => {
             ]
         )
         if (rowCount === 0) return res.status(404).json({ error: "Laboratory not found" })
+
+        await logActivity({
+            req,
+            action: "room.update",
+            entityType: "room",
+            entityId: roomName,
+            description: `Updated room ${roomName}${newRoomName !== roomName ? ` → ${newRoomName}` : ""}`,
+            metadata: { roomType: type }
+        })
+
         res.json({ message: "Laboratory updated successfully" })
     } catch (error) {
-        if (error.code === "23505") return res.status(409).json({ error: "A laboratory with this room name already exists" })
+        if (error.code === "23505") return res.status(409).json({ error: "A room with this room name already exists" })
         console.error(error)
         res.status(500).json({ error: "Failed to update laboratory" })
     }
@@ -116,6 +137,15 @@ router.delete("/delete", requireAuth, labWrite, async (req, res) => {
     try {
         const { rowCount } = await db.query("DELETE FROM rooms WHERE name = $1", [roomName])
         if (rowCount === 0) return res.status(404).json({ error: "Laboratory not found" })
+
+        await logActivity({
+            req,
+            action: "room.delete",
+            entityType: "room",
+            entityId: roomName,
+            description: `Deleted room ${roomName}`
+        })
+
         res.json({ message: "Laboratory deleted successfully" })
     } catch (error) {
         if (error.code === "23503") {
@@ -154,6 +184,17 @@ router.put("/maintenance", requireAuth, labWrite, async (req, res) => {
                 : `Facility notice: ${roomName} is available again.`
 
             notified = await notifyRoles(NOTIFY_STUDENTS, message)
+
+            await logActivity({
+                req,
+                action: "room.maintenance",
+                entityType: "room",
+                entityId: roomName,
+                description: nextState
+                    ? `Put ${roomName} under maintenance${reason ? ` (${reason})` : ""}`
+                    : `Cleared maintenance for ${roomName}`,
+                metadata: { maintenance: nextState, reason }
+            })
         }
 
         res.json({ message: "Maintenance status updated successfully", notified })
@@ -277,6 +318,17 @@ router.put("/toggle-pc", requireAuth, labWrite, async (req, res) => {
                 : `Facility notice: Unit ${computer.pc_number} in ${computer.room_name} is back in service.`
 
             notified = await notifyRoles(NOTIFY_STUDENTS, message)
+
+            await logActivity({
+                req,
+                action: "unit.maintenance",
+                entityType: "computer",
+                entityId: computer.id,
+                description: nextState
+                    ? `Flagged Unit ${computer.pc_number} in ${computer.room_name} as out of service${reason ? ` (${reason})` : ""}`
+                    : `Marked Unit ${computer.pc_number} in ${computer.room_name} fixed`,
+                metadata: { maintenance: nextState, reason, room: computer.room_name }
+            })
         }
 
         res.json({ message: "Computer status updated", notified })

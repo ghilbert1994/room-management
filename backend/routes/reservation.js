@@ -3,6 +3,7 @@ const router = express.Router()
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
 const { notifyRoles } = require("../lib/facilityNotify.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const STATUS_VALUES = ["processing", "pending", "approved", "rejected", "no_show", "cancelled", "in_progress"]
 
@@ -363,6 +364,15 @@ router.post("/:id/follow-up", requireAuth, async (req, res) => {
             `Follow-up from ${req.user.name || req.user.email}: ${detail} (${label}, status: ${reservation.status}).`
         )
 
+        await logActivity({
+            req,
+            action: "reservation.follow_up",
+            entityType: "reservation",
+            entityId: id,
+            description: `${req.user.name || req.user.email} sent a follow-up on ${label}`,
+            metadata: { message: detail }
+        })
+
         res.json({ message: "Follow-up sent to the admin", notified })
     } catch (error) {
         console.error(error)
@@ -456,6 +466,20 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
 
         const coordinatorMessage = `New reservation request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`
         await notifyRoles(["admin"], coordinatorMessage)
+
+        await logActivity({
+            req,
+            action: "reservation.create",
+            entityType: "reservation",
+            entityId: rows[0].id,
+            description: `${req.user.name || req.user.email} requested ${roomResult.rows[0].name} on ${start.slice(0, 10)}${section ? ` (${section.label})` : ""}`,
+            metadata: {
+                room: roomResult.rows[0].name,
+                status: reservationStatus,
+                section: section?.label || null,
+                purpose: purpose.label
+            }
+        })
 
         res.status(201).json({
             message: "Reservation created successfully",
@@ -558,6 +582,15 @@ router.put("/edit", requireAuth, async (req, res) => {
             RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants, section_id
         `, [start, end, effectiveReservedBy, roomId, status, purpose.id, notes, participants, section?.id || null, id])
 
+        await logActivity({
+            req,
+            action: "reservation.update",
+            entityType: "reservation",
+            entityId: id,
+            description: `${req.user.name || req.user.email} updated reservation #${id} for ${roomId} on ${start.slice(0, 10)}`,
+            metadata: { status, section: section?.label || null }
+        })
+
         res.json({
             message: "Reservation updated successfully",
             reservation: { ...rows[0], purpose: purpose.label, section: section?.label || null }
@@ -597,6 +630,15 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
             "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
             [reserved_by, `Your reservation for ${room_name} was ${status}.`]
         )
+
+        await logActivity({
+            req,
+            action: "reservation.status",
+            entityType: "reservation",
+            entityId: id,
+            description: `${req.user.name || req.user.email} set reservation #${id} (${room_name}) to ${status}`,
+            metadata: { status, room: room_name }
+        })
 
         res.json({ message: `Reservation ${status}` })
     } catch (error) {
@@ -669,6 +711,15 @@ const cancelReservation = async (req, res) => {
                 [reservation.reserved_by, `Your reservation for ${label} was cancelled by ${user.name || user.email}.`]
             )
         }
+
+        await logActivity({
+            req,
+            action: "reservation.cancel",
+            entityType: "reservation",
+            entityId: id,
+            description: `${user.name || user.email} cancelled ${label}${note ? ` — ${note}` : ""}`,
+            metadata: { room: reservation.room_name, section: reservation.section_label || null, reason: note }
+        })
 
         res.json({ message: "Reservation cancelled" })
     } catch (error) {

@@ -3,6 +3,7 @@ const router = express.Router()
 const db = require("../db.js")
 const { requireAuth, requireCapability } = require("../middleware/auth.js")
 const { notifyRoles, NOTIFY_STUDENTS } = require("../lib/facilityNotify.js")
+const { logActivity } = require("../lib/activityLog.js")
 
 const canReport = requireCapability("facilityReport")
 const canManage = requireCapability("facilityManage")
@@ -172,6 +173,15 @@ router.post("/reports", requireAuth, canReport, async (req, res) => {
             `New facility report: ${label}${sectionText} — ${text}${evidence} (reported by ${reporter}).`
         )
 
+        await logActivity({
+            req,
+            action: "report.create",
+            entityType: "facility_report",
+            entityId: reportId,
+            description: `${reporter} reported ${label}${section ? ` (${section.label})` : ""}: ${text}`,
+            metadata: { attachments: attachments.length, section: section?.label || null }
+        })
+
         res.status(201).json({ message: "Report submitted", report: { ...rows[0], section: section?.label || null, attachments: attachments.length } })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
@@ -312,6 +322,15 @@ router.put("/reports/:id/resolve", requireAuth, canManage, async (req, res) => {
             "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
             [report.reported_by, `Your facility report about ${label} was ${nextStatus}.`]
         )
+
+        await logActivity({
+            req,
+            action: "report.resolve",
+            entityType: "facility_report",
+            entityId: id,
+            description: `${req.user.name || req.user.email} ${nextStatus} the report about ${label}`,
+            metadata: { resolution: action, note: String(note || "").trim() || null }
+        })
 
         res.json({
             message: `Report ${nextStatus}`,
