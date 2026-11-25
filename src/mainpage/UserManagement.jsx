@@ -24,6 +24,9 @@ function UserManagement() {
     const [search, setSearch] = useState("")
     const [roleFilter, setRoleFilter] = useState("")
     const [resetResult, setResetResult] = useState(null)
+    const [resetRequests, setResetRequests] = useState([])
+    const [resetLink, setResetLink] = useState(null)
+    const [linkCopied, setLinkCopied] = useState(false)
     const [copied, setCopied] = useState(false)
 
     const loadUsers = async () => {
@@ -40,8 +43,19 @@ function UserManagement() {
         }
     }
 
+    const loadResetRequests = async () => {
+        try {
+            const response = await fetch("/api/admin/password-resets", { credentials: "include" })
+            const data = await response.json()
+            if (response.ok) setResetRequests(data.requests || [])
+        } catch {
+            setResetRequests([])
+        }
+    }
+
     useEffect(() => {
         loadUsers()
+        loadResetRequests()
         const loadSections = async () => {
             try {
                 const response = await fetch("/api/sections", { credentials: "include" })
@@ -87,6 +101,56 @@ function UserManagement() {
             const data = await response.json()
             if (!response.ok) throw new Error(data.message || "Failed to update the section")
             setUsers((prev) => prev.map((item) => (item.id === data.user.id ? { ...item, ...data.user } : item)))
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
+    const createResetLink = async (request) => {
+        try {
+            setError("")
+            setLinkCopied(false)
+            const response = await fetch(`/api/admin/password-resets/${request.id}/link`, {
+                method: "POST",
+                credentials: "include"
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message || "Failed to create a reset link")
+
+            const url = `${window.location.origin}${data.url}`
+            setResetLink({ email: request.email, url })
+            try {
+                await navigator.clipboard.writeText(url)
+                setLinkCopied(true)
+            } catch {
+                setLinkCopied(false)
+            }
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
+    const copyResetLink = async () => {
+        if (!resetLink) return
+        try {
+            await navigator.clipboard.writeText(resetLink.url)
+            setLinkCopied(true)
+        } catch {
+            setLinkCopied(false)
+        }
+    }
+
+    const dismissResetRequest = async (request) => {
+        if (!window.confirm(`Dismiss the password reset request for ${request.email}?`)) return
+        try {
+            setError("")
+            const response = await fetch(`/api/admin/password-resets/${request.id}`, {
+                method: "DELETE",
+                credentials: "include"
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message || "Failed to dismiss the request")
+            await loadResetRequests()
         } catch (err) {
             setError(err.message)
         }
@@ -167,6 +231,71 @@ function UserManagement() {
                     </button>
                 </div>
             )}
+
+            <div className="schedule-card">
+                <div className="schedule-card-header">
+                    <div>
+                        <h2>Password Reset Requests</h2>
+                        <p>No email service is configured yet — create a link and send it to the user.</p>
+                    </div>
+                </div>
+
+                {resetLink && (
+                    <div className="invite-code-box" style={{ margin: 16 }}>
+                        <div style={{ minWidth: 0 }}>
+                            <div className="invite-code-note">Reset link for {resetLink.email}</div>
+                            <div style={{ wordBreak: 'break-all', fontSize: 13, color: 'var(--navy-900)' }}>{resetLink.url}</div>
+                        </div>
+                        <button type="button" className="ghost-btn" onClick={copyResetLink}>
+                            {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                            {linkCopied ? "Copied" : "Copy"}
+                        </button>
+                    </div>
+                )}
+
+                {resetRequests.length === 0 ? (
+                    <div className="schedule-empty">
+                        <KeyRound size={32} color="#94a3b8" />
+                        <h3>No pending requests</h3>
+                        <p>Requests submitted from the Forgot Password page appear here.</p>
+                    </div>
+                ) : (
+                    <div className="schedule-table-wrapper">
+                        <table className="schedule-table" style={{ minWidth: 720 }}>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Requested</th>
+                                    <th>Expires</th>
+                                    <th style={{ textAlign: "right" }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {resetRequests.map((request) => (
+                                    <tr key={request.id}>
+                                        <td>
+                                            <div className="subject-name">{request.name || "Unnamed"}</div>
+                                            <div className="muted">{request.email}</div>
+                                        </td>
+                                        <td>{new Date(request.created_at).toLocaleString()}</td>
+                                        <td>{new Date(request.expires_at).toLocaleString()}</td>
+                                        <td style={{ textAlign: "right" }}>
+                                            <div className="row-actions" style={{ justifyContent: "flex-end" }}>
+                                                <button type="button" className="ghost-btn" onClick={() => createResetLink(request)}>
+                                                    <KeyRound size={15} /> Create link
+                                                </button>
+                                                <button type="button" className="ghost-btn" onClick={() => dismissResetRequest(request)}>
+                                                    Dismiss
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
 
             <div className="schedule-toolbar">
                 <div className="schedule-field">

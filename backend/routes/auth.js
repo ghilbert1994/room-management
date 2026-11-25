@@ -9,6 +9,10 @@ const { authLimiter } = require("../middleware/rateLimit.js")
 
 const router = express.Router()
 
+const RESET_TTL_MINUTES = 60
+const hashResetToken = (token) => crypto.createHash("sha256").update(String(token)).digest("hex")
+const resetUrlFor = (token) => `${process.env.APP_URL || "http://localhost:4000"}/reset-password?token=${token}`
+
 const CODE_ROLES = ["faculty", "admin", "mis_staff"]
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 const CODE_PREFIX = { faculty: "FAC", admin: "ADM", mis_staff: "MIS" }
@@ -107,6 +111,98 @@ router.post("/login", authLimiter, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Login failed" })
+    }
+})
+
+// ---------------------------------------------------------------------------
+// Password reset (token based)
+// ---------------------------------------------------------------------------
+router.post("/forgot-password", authLimiter, async (req, res) => {
+    const email = String(req.body.email || "").trim().toLowerCase()
+    const generic = { message: "If that email is registered, a password reset request has been created." }
+
+    if (!z.email().safeParse(email).success) {
+        return res.status(400).json({ message: "Enter a valid email address" })
+    }
+
+    try {
+        const { rows } = await db.query(
+            "SELECT id, name, email FROM users WHERE email = $1 AND is_active = true",
+            [email]
+        )
+        const user = rows[0]
+
+        if (user) {
+            const token = crypto.randomBytes(32).toString("hex")
+
+            await db.query(
+                "UPDATE password_resets SET used_at = now() WHERE user_id = $1 AND used_at IS NULL",
+                [user.id]
+            )
+            await db.query(
+                `INSERT INTO password_resets (user_id, token_hash, expires_at)
+                 VALUES ($1, $2, now() + ($3::text || ' minutes')::interval)`,
+                [user.id, hashResetToken(token), RESET_TTL_MINUTES]
+            )
+
+            await db.query(`
+                INSERT INTO notifications (user_id, message)
+                SELECT id, $1 FROM users WHERE role = 'admin' AND is_active = true
+            `, [`Password reset requested for ${user.email}. Open User Management to create a reset link.`])
+
+            // No mail service is configured yet: the link is logged locally and
+            // admins can generate a fresh one from User Management.
+            if (process.env.NODE_ENV !== "production") {
+                console.log(`[password-reset] ${user.email}: ${resetUrlFor(token)}`)
+            }
+        }
+
+        res.json(generic)
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to create a reset request" })
+    }
+})
+
+router.post("/reset-password", authLimiter, async (req, res) => {
+    const token = String(req.body.token || "").trim()
+    const newPassword = String(req.body.newPassword || "")
+
+    if (token.length < 32) {
+        return res.status(400).json({ message: "This reset link is invalid or has expired" })
+    }
+    if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" })
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+        const { rows } = await db.query(`
+            UPDATE password_resets
+            SET used_at = now()
+            WHERE token_hash = $1
+              AND used_at IS NULL
+              AND expires_at > now()
+            RETURNING user_id
+        `, [hashResetToken(token)])
+
+        if (rows.length === 0) {
+            return res.status(400).json({ message: "This reset link is invalid or has expired" })
+        }
+
+        const userId = rows[0].user_id
+
+        await db.query(
+            "UPDATE users SET password = $1, updated_at = now() WHERE id = $2",
+            [hashedPassword, userId]
+        )
+        await db.query("DELETE FROM session WHERE sess->>'userId' = $1", [String(userId)])
+
+        res.json({ message: "Password updated. You can sign in with the new password." })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to reset the password" })
     }
 })
 

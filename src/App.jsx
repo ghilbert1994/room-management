@@ -4,6 +4,8 @@ import { Suspense } from "react"
 
 import Login from "./auth/Login.jsx"
 import Register from "./auth/Register.jsx"
+import ForgotPassword from "./auth/ForgotPassword.jsx"
+import ResetPassword from "./auth/ResetPassword.jsx"
 import Sidebar from "./layout/Sidebar.jsx"
 import Navbar from "./layout/Navbar.jsx"
 import { UserContext } from "./auth/UserContext.jsx"
@@ -67,6 +69,8 @@ function AppRoutes() {
         <Routes>
             <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
             <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+            <Route path="/forgot-password" element={<PublicOnly><ForgotPassword /></PublicOnly>} />
+            <Route path="/reset-password" element={<PublicOnly><ResetPassword /></PublicOnly>} />
 
             <Route element={<ProtectedLayout />}>
                 <Route index element={<Navigate to={defaultRouteForRole(role)} replace />} />

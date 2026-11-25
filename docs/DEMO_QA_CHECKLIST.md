@@ -163,6 +163,18 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Try to deactivate your own admin account → blocked.
 - [ ] Log in as a student and open `/admin/users` → redirected.
 
+### Forgot password
+- [ ] Log out, open **Forgot password?** on the login page.
+- [ ] Enter a registered email → generic success message (no account details leaked).
+- [ ] Enter an unknown email → the same generic message.
+- [ ] As admin, open **User Management** → **Password Reset Requests** shows the request.
+- [ ] Click **Create link** → the reset URL is shown and copied.
+- [ ] Open the link while logged out → **Reset Password** form appears.
+- [ ] Set a new password → success; old password fails, new password logs in.
+- [ ] Reuse the same link → `invalid or has expired`.
+- [ ] In development the API log prints `[password-reset] <email>: http://.../reset-password?token=...`.
+- [ ] **Dismiss** a request → it disappears and its links stop working.
+
 ---
 
 ## 5. Schedules (admin)

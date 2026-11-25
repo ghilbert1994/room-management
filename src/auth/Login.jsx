@@ -66,10 +66,7 @@ function Login() {
                     </div>
                     
                     <div className="form-options">
-                        <div className="remember-me">
-                            <input type="checkbox" id="remember"/>
-                            <label htmlFor="remember">Remember Me</label>
-                        </div>
+                        <Link to="/forgot-password">Forgot password?</Link>
                         <Link to="/register">Register Account</Link>
                     </div>
 

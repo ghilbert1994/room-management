@@ -160,4 +160,62 @@ router.put("/users/:id/section", adminOnly, async (req, res) => {
     }
 })
 
+router.get("/password-resets", adminOnly, async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT password_resets.id,
+                   password_resets.created_at,
+                   password_resets.expires_at,
+                   users.id AS user_id,
+                   users.name,
+                   users.email
+            FROM password_resets
+            JOIN users ON users.id = password_resets.user_id
+            WHERE password_resets.used_at IS NULL
+              AND password_resets.expires_at > now()
+            ORDER BY password_resets.created_at DESC
+        `)
+
+        res.json({ requests: rows })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to load password reset requests" })
+    }
+})
+
+router.post("/password-resets/:id/link", adminOnly, async (req, res) => {
+    const token = crypto.randomBytes(32).toString("hex")
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex")
+
+    try {
+        const { rows } = await db.query(`
+            UPDATE password_resets
+            SET token_hash = $1, expires_at = now() + interval '60 minutes'
+            WHERE id = $2 AND used_at IS NULL
+            RETURNING id
+        `, [tokenHash, req.params.id])
+
+        if (rows.length === 0) return res.status(404).json({ message: "Reset request not found or already used" })
+
+        res.json({ url: `/reset-password?token=${token}` })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to create a reset link" })
+    }
+})
+
+router.delete("/password-resets/:id", adminOnly, async (req, res) => {
+    try {
+        const { rowCount } = await db.query(
+            "UPDATE password_resets SET used_at = now() WHERE id = $1 AND used_at IS NULL",
+            [req.params.id]
+        )
+        if (rowCount === 0) return res.status(404).json({ message: "Reset request not found" })
+        res.json({ message: "Reset request dismissed" })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to dismiss the reset request" })
+    }
+})
+
 module.exports = router
