@@ -29,6 +29,36 @@ const parseLocal = (value) => {
     return new Date(str)
 }
 
+const eventDetails = (event) => event.isClass
+    ? [
+        `${event.subject || "Class"} (${event.course || ""} ${event.year_level || ""} ${event.section || ""})`.trim(),
+        `Instructor: ${event.instructor || "Unassigned"}`,
+        `Room: ${event.room_name || event.room || "TBA"}`
+    ].join("\n")
+    : [
+        `${event.purpose || "Reservation"} — ${event.status || ""}`,
+        `Reserved by: ${event.user || "Reserved"}`,
+        `Room: ${event.room || "TBA"}`
+    ].join("\n")
+
+// Event face: title plus a compact "instructor · room" line. Hovering shows
+// the full details (course/section/status) via the native tooltip.
+function ScheduleEvent({ event }) {
+    const primary = event.isClass ? event.subject : (event.purpose || "Reservation")
+    const person = event.isClass ? (event.instructor || "Unassigned") : (event.user || "Reserved")
+    const room = event.room_name || event.room || "TBA"
+
+    return (
+        <div className="sv-event" title={eventDetails(event)}>
+            <div className="sv-event-title">{primary}</div>
+            <div className="sv-event-meta">
+                <span className="sv-event-person">{person}</span>
+                <span className="sv-event-room">{room}</span>
+            </div>
+        </div>
+    )
+}
+
 function ScheduleViewer() {
     const { labs } = useContext(UserContext)
     const [reservations, setReservations] = useState([])
@@ -212,7 +242,12 @@ function ScheduleViewer() {
 
             <div className="schedule-viewer-timetable" style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', marginTop: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h2 style={{ color: 'var(--navy-900)', margin: 0, fontSize: '18px' }}>Weekly Timetable</h2>
+                    <div>
+                        <h2 style={{ color: 'var(--navy-900)', margin: 0, fontSize: '18px' }}>Weekly Timetable</h2>
+                        <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '12.5px' }}>
+                            Each block shows the instructor and room. Hover an event for the full details.
+                        </p>
+                    </div>
                     
                     <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -249,6 +284,7 @@ function ScheduleViewer() {
                         min={new Date(1970, 0, 1, 7, 0)}
                         max={new Date(1970, 0, 1, 20, 0)}
                         popup
+                        components={{ event: ScheduleEvent }}
                         eventPropGetter={(event) => ({
                             style: {
                                 backgroundColor: event.isClass

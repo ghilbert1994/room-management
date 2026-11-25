@@ -335,3 +335,52 @@
     border-color: var(--navy-900);
     color: white;
 }
+/* Compact event face: subject, instructor, and room */
+.sv-event {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    overflow: hidden;
+    line-height: 1.15;
+}
+
+.sv-event-title {
+    font-size: 10.5px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-event-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 9.5px;
+    opacity: 0.94;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sv-event-person {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 58%;
+}
+
+.sv-event-room {
+    margin-left: auto;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%;
+}
+
+.schedule-viewer-timetable .rbc-event {
+    padding: 2px 4px;
+}
+
+.schedule-viewer-timetable .rbc-event-content {
+    overflow: hidden;
+}
