@@ -66,13 +66,13 @@ function FacilityIssues() {
 
     const [issues, setIssues] = useState({ rooms: [], computers: [] })
     const [reports, setReports] = useState([])
-    const [options, setOptions] = useState({ rooms: [], computers: [] })
+    const [options, setOptions] = useState({ rooms: [], computers: [], sections: [] })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [notice, setNotice] = useState(null)
     const [busy, setBusy] = useState("")
 
-    const [form, setForm] = useState({ roomId: "", computerId: "", description: "" })
+    const [form, setForm] = useState({ roomId: "", computerId: "", sectionId: "", description: "" })
     const [attachments, setAttachments] = useState([])
     const [evidence, setEvidence] = useState(null)
 
@@ -92,7 +92,14 @@ function FacilityIssues() {
                 const optionsResponse = await fetch("/api/facility/report-options", { credentials: "include" })
                 const optionsData = await optionsResponse.json()
                 if (!optionsResponse.ok) throw new Error(optionsData.error || "Failed to load laboratories")
-                setOptions({ rooms: optionsData.rooms || [], computers: optionsData.computers || [] })
+                setOptions({
+                    rooms: optionsData.rooms || [],
+                    computers: optionsData.computers || [],
+                    sections: optionsData.sections || []
+                })
+                setForm((previous) => previous.sectionId || !user?.section_id
+                    ? previous
+                    : { ...previous, sectionId: String(user.section_id) })
             }
         } catch (error) {
             setNotice({ type: "error", text: error.message })
@@ -164,6 +171,10 @@ function FacilityIssues() {
             setNotice({ type: "error", text: "Describe the problem in at least 3 characters." })
             return
         }
+        if (!canManage && !form.sectionId) {
+            setNotice({ type: "error", text: "Choose the section that was scheduled." })
+            return
+        }
 
         setSaving(true)
         try {
@@ -174,6 +185,7 @@ function FacilityIssues() {
                 body: JSON.stringify({
                     roomId: form.roomId || null,
                     computerId: form.computerId || null,
+                    sectionId: form.sectionId || null,
                     description: form.description.trim(),
                     attachments: attachments.map(({ name, type, data }) => ({ name, type, data }))
                 })
@@ -182,7 +194,12 @@ function FacilityIssues() {
             if (!response.ok) throw new Error(data.error || "Failed to submit report")
 
             setNotice({ type: "success", text: "Report submitted. MIS staff will review it." })
-            setForm({ roomId: "", computerId: "", description: "" })
+            setForm({
+                roomId: "",
+                computerId: "",
+                sectionId: user?.section_id ? String(user.section_id) : "",
+                description: ""
+            })
             setAttachments([])
             await loadData()
         } catch (error) {
@@ -339,6 +356,15 @@ function FacilityIssues() {
                                         ))}
                                     </select>
                                 </div>
+                                <div className="form-field">
+                                    <label>Section (scheduled)</label>
+                                    <select name="sectionId" value={form.sectionId} onChange={handleChange} required>
+                                        <option value="">Select the section that was scheduled</option>
+                                        {options.sections.map((section) => (
+                                            <option key={section.id} value={section.id}>{section.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="form-field" style={{ gridColumn: "1 / -1" }}>
                                     <label>Problem Description</label>
                                     <textarea
@@ -428,6 +454,7 @@ function FacilityIssues() {
                                     <tr>
                                         <th>Target</th>
                                         <th>Reported By</th>
+                                        <th>Section</th>
                                         <th>Problem</th>
                                         <th>Evidence</th>
                                         <th>Submitted</th>
@@ -441,6 +468,7 @@ function FacilityIssues() {
                                                 {reportTarget(report)}
                                             </td>
                                             <td>{report.reporter_name || report.reporter_email}</td>
+                                            <td>{report.section_label || "—"}</td>
                                             <td>{report.description}</td>
                                             <td>{renderEvidence(report.attachments)}</td>
                                             <td>{formatDate(report.created_at)}</td>
@@ -642,6 +670,7 @@ function FacilityIssues() {
                                 <thead>
                                     <tr>
                                         <th>Target</th>
+                                        <th>Section</th>
                                         <th>Problem</th>
                                         <th>Evidence</th>
                                         <th>Status</th>
@@ -657,6 +686,7 @@ function FacilityIssues() {
                                                 <td style={{ fontWeight: 700, color: "var(--navy-900)" }}>
                                                     {reportTarget(report)}
                                                 </td>
+                                                <td>{report.section_label || "—"}</td>
                                                 <td>{report.description}</td>
                                                 <td>{renderEvidence(report.attachments)}</td>
                                                 <td>

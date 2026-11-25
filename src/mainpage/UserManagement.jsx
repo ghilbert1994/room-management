@@ -18,6 +18,7 @@ const formatDate = (value) => {
 function UserManagement() {
     const { user: currentUser } = useContext(UserContext)
     const [users, setUsers] = useState([])
+    const [sections, setSections] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [search, setSearch] = useState("")
@@ -41,6 +42,16 @@ function UserManagement() {
 
     useEffect(() => {
         loadUsers()
+        const loadSections = async () => {
+            try {
+                const response = await fetch("/api/sections", { credentials: "include" })
+                const data = await response.json()
+                if (response.ok) setSections(data.sections || [])
+            } catch {
+                setSections([])
+            }
+        }
+        loadSections()
     }, [])
 
     const updateUser = async (id, patch) => {
@@ -58,6 +69,23 @@ function UserManagement() {
             })
             const data = await response.json()
             if (!response.ok) throw new Error(data.message || "Failed to update user")
+            setUsers((prev) => prev.map((item) => (item.id === data.user.id ? { ...item, ...data.user } : item)))
+        } catch (err) {
+            setError(err.message)
+        }
+    }
+
+    const updateSection = async (id, sectionId) => {
+        try {
+            setError("")
+            const response = await fetch(`/api/admin/users/${id}/section`, {
+                method: "PUT",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sectionId: sectionId ? Number(sectionId) : null })
+            })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.message || "Failed to update the section")
             setUsers((prev) => prev.map((item) => (item.id === data.user.id ? { ...item, ...data.user } : item)))
         } catch (err) {
             setError(err.message)
@@ -173,11 +201,12 @@ function UserManagement() {
                 </div>
 
                 <div className="schedule-table-wrapper">
-                    <table className="schedule-table" style={{ minWidth: 900 }}>
+                    <table className="schedule-table" style={{ minWidth: 1000 }}>
                         <thead>
                             <tr>
                                 <th>User</th>
                                 <th>Role</th>
+                                <th>Section</th>
                                 <th>Status</th>
                                 <th>Created</th>
                                 <th style={{ textAlign: "right" }}>Actions</th>
@@ -203,6 +232,22 @@ function UserManagement() {
                                                     <option key={role} value={role}>{ROLE_LABELS[role]}</option>
                                                 ))}
                                             </select>
+                                        </td>
+                                        <td>
+                                            {normalizeRole(item.role) === "student" ? (
+                                                <select
+                                                    className="inline-select"
+                                                    value={item.section_id || ""}
+                                                    onChange={(event) => updateSection(item.id, event.target.value)}
+                                                >
+                                                    <option value="">No section</option>
+                                                    {sections.map((section) => (
+                                                        <option key={section.id} value={section.id}>{section.label}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <span className="muted">—</span>
+                                            )}
                                         </td>
                                         <td>
                                             <span className={`status-badge ${item.is_active ? "active" : "revoked"}`}>

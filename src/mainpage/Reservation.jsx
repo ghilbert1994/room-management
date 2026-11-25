@@ -65,9 +65,11 @@ function Reservation() {
         timeEnd: "",
         purposeId: "",
         purposeNotes: "",
+        sectionId: "",
         participants: ""
     })
     const [purposes, setPurposes] = useState([])
+    const [sections, setSections] = useState([])
 
     const fetchLabs = async () => {
         try {
@@ -121,6 +123,13 @@ function Reservation() {
             } catch {
                 setPurposes([])
             }
+            try {
+                const response = await fetch(`/api/sections`, { credentials: "include" })
+                const data = await response.json()
+                if (response.ok) setSections(data.sections || [])
+            } catch {
+                setSections([])
+            }
         }
         loadData()
     }, [])
@@ -159,6 +168,7 @@ function Reservation() {
             timeEnd: formatDateTime(adjustedEnd),
             purposeId: "",
             purposeNotes: "",
+            sectionId: "",
             participants: ""
         })
         setError("")
@@ -215,6 +225,9 @@ function Reservation() {
         if (selectedPurpose.label === "Others" && !form.purposeNotes.trim()) {
             return setFormError("Please describe the purpose when choosing Others")
         }
+        if (normalizeRole(user.role) === "faculty" && !form.sectionId) {
+            return setFormError("Choose the section for this reservation")
+        }
 
         const start = new Date(form.timeStart)
         const end = new Date(form.timeEnd)
@@ -254,6 +267,7 @@ function Reservation() {
                     status: "pending",
                     purposeId: Number(form.purposeId),
                     purposeNotes: form.purposeNotes.trim(),
+                    sectionId: form.sectionId ? Number(form.sectionId) : null,
                     participants: Number(form.participants)
                 })
             })
@@ -262,7 +276,7 @@ function Reservation() {
             if (!response.ok) throw new Error(data.error || "Failed to add reservation")
 
             setShowAddModal(false)
-            setForm({ roomId: "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
+            setForm({ roomId: "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", sectionId: "", participants: "" })
             setNotice("Reservation submitted. It is pending until the admin approves it.")
             await fetchReservations()
             notifyBookingsChanged()
@@ -378,7 +392,7 @@ function Reservation() {
                         setError("")
                         setFormError("")
                         setNotice("")
-                        setForm({ roomId: labs.some((lab) => String(lab.id) === String(filterRoom) && (lab.room_type || "laboratory") === "laboratory") ? filterRoom : "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", participants: "" })
+                        setForm({ roomId: labs.some((lab) => String(lab.id) === String(filterRoom) && (lab.room_type || "laboratory") === "laboratory") ? filterRoom : "", timeStart: "", timeEnd: "", purposeId: "", purposeNotes: "", sectionId: "", participants: "" })
                         setShowAddModal(true)
                     }}>
                         New Reservation
@@ -444,6 +458,9 @@ function Reservation() {
 
                         <div className="reservation-modal-content">
                             <div className="reservation-detail"><span>Laboratory</span><strong>{selectedReservation.room}</strong></div>
+                            {selectedReservation.section && (
+                                <div className="reservation-detail"><span>Section</span><strong>{selectedReservation.section}</strong></div>
+                            )}
                             <div className="reservation-detail"><span>Reserved By</span><strong>{selectedReservation.user}</strong></div>
                             <div className="reservation-detail"><span>Start</span><strong>{format(selectedReservation.start, "MMM d, yyyy h:mm a")}</strong></div>
                             <div className="reservation-detail"><span>End</span><strong>{format(selectedReservation.end, "MMM d, yyyy h:mm a")}</strong></div>
@@ -537,6 +554,22 @@ function Reservation() {
                                                     {lab.name} {lab.maintenance ? "🚫 (Under Maintenance)" : ""}
                                                 </option>
                                             ))}
+                                    </select>
+                                </div>
+
+                                <div className="reservation-form-group">
+                                    <label htmlFor="sectionId">Section</label>
+                                    <select
+                                        id="sectionId"
+                                        name="sectionId"
+                                        value={form.sectionId}
+                                        onChange={handleChange}
+                                        required={normalizeRole(user.role) === "faculty"}
+                                    >
+                                        <option value="">Select section</option>
+                                        {sections.map((section) => (
+                                            <option key={section.id} value={section.id}>{section.label}</option>
+                                        ))}
                                     </select>
                                 </div>
 

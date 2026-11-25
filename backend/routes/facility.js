@@ -52,8 +52,15 @@ router.get("/report-options", requireAuth, async (req, res) => {
             JOIN rooms ON rooms.id = computers.room_id
             ORDER BY rooms.name ASC, computers.pc_number ASC
         `)
+        const sections = await db.query(`
+            SELECT id, course, year_level, name,
+                   course || ' ' || year_level || ' ' || name AS label
+            FROM sections
+            WHERE is_active
+            ORDER BY course ASC, year_level ASC, name ASC
+        `)
 
-        res.json({ rooms: rooms.rows, computers: computers.rows })
+        res.json({ rooms: rooms.rows, computers: computers.rows, sections: sections.rows })
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to load report options" })
@@ -62,7 +69,7 @@ router.get("/report-options", requireAuth, async (req, res) => {
 
 // Faculty, students, and staff submit a facility report.
 router.post("/reports", requireAuth, canReport, async (req, res) => {
-    const { roomId, computerId, description } = req.body
+    const { roomId, computerId, description, sectionId } = req.body
     const text = String(description || "").trim()
     const rawAttachments = Array.isArray(req.body.attachments) ? req.body.attachments : []
 
@@ -74,6 +81,23 @@ router.post("/reports", requireAuth, canReport, async (req, res) => {
     }
     if (rawAttachments.length > MAX_ATTACHMENTS) {
         return res.status(400).json({ error: `Attach at most ${MAX_ATTACHMENTS} files` })
+    }
+
+    let section = null
+    if (sectionId) {
+        const sectionRows = await db.query(
+            "SELECT id, course, year_level, name FROM sections WHERE id = $1 AND is_active",
+            [sectionId]
+        )
+        if (sectionRows.rows.length === 0) {
+            return res.status(400).json({ error: "That section was not found" })
+        }
+        section = sectionRows.rows[0]
+        section.label = `${section.course} ${section.year_level} ${section.name}`
+    }
+
+    if (!section && !isStaff(req.user.role)) {
+        return res.status(400).json({ error: "Choose the section that was scheduled" })
     }
 
     const attachments = []
@@ -123,10 +147,10 @@ router.post("/reports", requireAuth, canReport, async (req, res) => {
         const label = target.pc_number ? `Unit ${target.pc_number} in ${target.room_name}` : target.name
 
         const { rows } = await client.query(`
-            INSERT INTO facility_reports (reported_by, room_id, computer_id, description)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, room_id, computer_id, description, status, created_at
-        `, [req.user.id, roomIdValue, computerIdValue, text])
+            INSERT INTO facility_reports (reported_by, room_id, computer_id, description, section_id)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, room_id, computer_id, description, status, created_at, section_id
+        `, [req.user.id, roomIdValue, computerIdValue, text, section?.id || null])
 
         const reportId = rows[0].id
 
@@ -141,13 +165,14 @@ router.post("/reports", requireAuth, canReport, async (req, res) => {
 
         const reporter = req.user.name || req.user.email
         const evidence = attachments.length > 0 ? ` (${attachments.length} file${attachments.length === 1 ? "" : "s"} attached)` : ""
+        const sectionText = section ? ` [Section ${section.label}]` : ""
 
         await notifyRoles(
             STAFF_ROLES,
-            `New facility report: ${label} — ${text}${evidence} (reported by ${reporter}).`
+            `New facility report: ${label}${sectionText} — ${text}${evidence} (reported by ${reporter}).`
         )
 
-        res.status(201).json({ message: "Report submitted", report: { ...rows[0], attachments: attachments.length } })
+        res.status(201).json({ message: "Report submitted", report: { ...rows[0], section: section?.label || null, attachments: attachments.length } })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
         console.error(error)
@@ -173,12 +198,15 @@ router.get("/reports", requireAuth, canReport, async (req, res) => {
                    facility_reports.room_id,
                    rooms.name AS room_name,
                    computers.pc_number,
+                   facility_reports.section_id,
+                   sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
                    reporter.name AS reporter_name,
                    reporter.email AS reporter_email,
                    COALESCE(attachments.items, '[]'::json) AS attachments
             FROM facility_reports
             JOIN rooms ON rooms.id = facility_reports.room_id
             LEFT JOIN computers ON computers.id = facility_reports.computer_id
+            LEFT JOIN sections ON sections.id = facility_reports.section_id
             JOIN users AS reporter ON reporter.id = facility_reports.reported_by
             LEFT JOIN LATERAL (
                 SELECT json_agg(

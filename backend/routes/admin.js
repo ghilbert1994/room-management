@@ -12,9 +12,17 @@ const adminOnly = [requireAuth, requireCapability("userManage")]
 router.get("/users", adminOnly, async (req, res) => {
     try {
         const { rows } = await db.query(`
-            SELECT id, name, email, role::text AS role, is_active, created_at
+            SELECT users.id,
+                   users.name,
+                   users.email,
+                   users.role::text AS role,
+                   users.is_active,
+                   users.created_at,
+                   users.section_id,
+                   sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label
             FROM users
-            ORDER BY id ASC
+            LEFT JOIN sections ON sections.id = users.section_id
+            ORDER BY users.id ASC
         `)
 
         res.json({ users: rows.map((user) => ({ ...user, role: normalizeRole(user.role) })) })
@@ -117,6 +125,38 @@ router.post("/users/:id/reset-password", adminOnly, async (req, res) => {
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Failed to reset the password" })
+    }
+})
+
+router.put("/users/:id/section", adminOnly, async (req, res) => {
+    const requested = Number(req.body.sectionId)
+    const sectionId = Number.isInteger(requested) && requested > 0 ? requested : null
+
+    try {
+        const target = await db.query("SELECT id, role::text AS role FROM users WHERE id = $1", [req.params.id])
+        if (target.rows.length === 0) return res.status(404).json({ message: "User not found" })
+        if (normalizeRole(target.rows[0].role) !== "student") {
+            return res.status(400).json({ message: "Only student accounts belong to a section" })
+        }
+
+        if (sectionId) {
+            const section = await db.query("SELECT id FROM sections WHERE id = $1 AND is_active", [sectionId])
+            if (section.rows.length === 0) return res.status(400).json({ message: "That section was not found" })
+        }
+
+        const { rows } = await db.query(
+            `UPDATE users
+             SET section_id = $1, updated_at = now()
+             WHERE id = $2
+             RETURNING id, name, email, role::text AS role, is_active, section_id,
+                 (SELECT course || ' ' || year_level || ' ' || name FROM sections WHERE sections.id = users.section_id) AS section_label`,
+            [sectionId, req.params.id]
+        )
+
+        res.json({ user: { ...rows[0], role: normalizeRole(rows[0].role) } })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to update the user section" })
     }
 })
 

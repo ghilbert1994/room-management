@@ -10,7 +10,8 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 
 ## Key Features
 - Role-Based Access Control (RBAC): Distinct interfaces for Students, Faculty, MIS Staff, and Admins.
-- Comprehensive Reservation System: Prevents double-booking, restricts past dates, and captures purpose, participants, and time.
+- Class Sections: sections (course + year + section) are kept in sync from the class schedule; students pick theirs at registration, faculty choose one when reserving, and reports record the section that was scheduled.
+- Comprehensive Reservation System: Prevents double-booking, restricts past dates, and captures purpose, participants, section, and time.
 - Admin-Only Approvals: the admin reviews and approves or rejects every reservation request; faculty track their own submissions in My Reservations.
 - Classroom and Laboratory Rooms: rooms are typed, so class schedules can use classrooms while reservations are limited to laboratories.
 - My Class Schedule: each faculty member sees only their own weekly timetable, with day columns and time rows.
@@ -42,7 +43,7 @@ Roles: `student`, `faculty`, `admin`, `mis_staff`.
 
 - `admin` sees everything. They approve every reservation, publish class schedules, manage rooms, and resolve facility reports.
 - `faculty` get **My Class Schedule** (their own timetable only), **My Reservations** (their own submissions, with cancel and follow-up), **Laboratory Reservation** to create requests, and **Report an Issue** for broken units and equipment.
-- `student` accounts register freely and can view the Class Schedule, Laboratory Schedule, University Calendar, and **Report an Issue**.
+- `student` accounts register freely (and choose their section), and can view the Class Schedule, Laboratory Schedule, University Calendar, and **Report an Issue**.
 - `faculty`, `admin`, and `mis_staff` must enter a user account code generated from **User Account Codes**.
 - Legacy `teacher` accounts are treated as `faculty` by the application.
 
@@ -66,6 +67,7 @@ node migrations/run.js 007_drop_legacy_purpose.sql
 node migrations/run.js 008_facility_reports.sql
 node migrations/run.js 009_room_types.sql
 node migrations/run.js 010_facility_report_attachments.sql
+node migrations/run.js 011_sections.sql
 ```
 
 `006_reservation_purposes.sql` is the normalization step for reservation

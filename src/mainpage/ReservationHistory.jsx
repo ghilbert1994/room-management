@@ -95,10 +95,11 @@ function ReservationHistory() {
     }, [reservations, status, room, from, to, search])
 
     const exportRows = () => {
-        const columns = ["Laboratory", "Reserved By", "Purpose", "Notes", "Participants", "Start", "End", "Status", "Requested On"]
+        const columns = ["Laboratory", "Reserved By", "Section", "Purpose", "Notes", "Participants", "Start", "End", "Status", "Requested On"]
         const data = rows.map((reservation) => [
             reservation.room,
             reservation.user,
+            reservation.section || "",
             reservation.purpose || "",
             reservation.purpose_notes || "",
             reservation.participants ?? "",
@@ -255,6 +256,7 @@ function ReservationHistory() {
                             <tr style={{ borderBottom: "2px solid var(--border)" }}>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Laboratory</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Reserved By</th>
+                                <th style={{ padding: "12px", color: "var(--text-muted)" }}>Section</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Schedule</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Details</th>
                                 <th style={{ padding: "12px", color: "var(--text-muted)" }}>Status</th>
@@ -264,7 +266,7 @@ function ReservationHistory() {
                         <tbody>
                             {rows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)" }}>
+                                    <td colSpan={7} style={{ padding: "24px", textAlign: "center", color: "var(--text-muted)" }}>
                                         No archived reservations match these filters.
                                     </td>
                                 </tr>
@@ -283,6 +285,7 @@ function ReservationHistory() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: "12px", color: "var(--text-soft)" }}>{reservation.user}</td>
+                                            <td style={{ padding: "12px", color: "var(--text-soft)" }}>{reservation.section || "—"}</td>
                                             <td style={{ padding: "12px", fontSize: "13px" }}>
                                                 <div style={{ color: "var(--text-soft)", fontWeight: "bold" }}>{start.toLocaleDateString()}</div>
                                                 <div style={{ color: "var(--text-muted)" }}>

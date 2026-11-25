@@ -192,6 +192,7 @@ function MyReservations() {
                             <thead>
                                 <tr>
                                     <th>Laboratory</th>
+                                    <th>Section</th>
                                     <th>Schedule</th>
                                     <th>Purpose</th>
                                     <th>Status</th>
@@ -208,6 +209,7 @@ function MyReservations() {
                                     return (
                                         <tr key={reservation.id}>
                                             <td style={{ fontWeight: 700, color: "var(--navy-900)" }}>{reservation.room}</td>
+                                            <td>{reservation.section || "—"}</td>
                                             <td>
                                                 <div style={{ color: "var(--text-soft)", fontWeight: 600 }}>{start.toLocaleDateString()}</div>
                                                 <div className="muted" style={{ color: "var(--text-muted)", fontSize: 12 }}>

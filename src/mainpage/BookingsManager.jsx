@@ -141,6 +141,7 @@ function BookingsManager() {
                             <tr style={{ borderBottom: '2px solid var(--border)' }}>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Room</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Reserved By</th>
+                                <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Section</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Schedule</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Details</th>
                                 <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Status</th>
@@ -150,7 +151,7 @@ function BookingsManager() {
                         <tbody>
                             {filteredReservations.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    <td colSpan={7} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                                         No reservations found.
                                     </td>
                                 </tr>
@@ -164,6 +165,7 @@ function BookingsManager() {
                                         <tr key={res.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                                             <td style={{ padding: '12px', fontWeight: 'bold', color: 'var(--navy-900)' }}>{res.room}</td>
                                             <td style={{ padding: '12px', color: 'var(--text-soft)' }}>{res.user}</td>
+                                            <td style={{ padding: '12px', color: 'var(--text-soft)' }}>{res.section || "—"}</td>
                                             <td style={{ padding: '12px', fontSize: '13px' }}>
                                                 <div style={{ color: 'var(--text-soft)', fontWeight: 'bold' }}>{start.toLocaleDateString()}</div>
                                                 <div style={{ color: 'var(--text-muted)' }}>{start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>

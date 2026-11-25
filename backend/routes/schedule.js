@@ -91,6 +91,22 @@ const scheduleRoomTypeError = (roomType, expectedType) => {
     return `That room is a ${roomType.replace("_", " ")}. Pick a ${expectedType.replace("_", " ")} for this schedule.`
 }
 
+// Class entries are the source of truth for sections; keep the sections table
+// in sync so the registration and reservation dropdowns stay complete.
+async function upsertSection(course, yearLevel, section, client = db) {
+    const courseValue = clean(course)
+    const yearValue = clean(yearLevel)
+    const sectionValue = clean(section)
+
+    if (!courseValue || !yearValue || !sectionValue) return
+
+    await client.query(`
+        INSERT INTO sections (course, year_level, name)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (course, year_level, name) DO UPDATE SET is_active = true
+    `, [courseValue, yearValue, sectionValue])
+}
+
 async function getSemesterDates(semesterId, client = db) {
     const { rows } = await client.query(
         "SELECT starts_on, ends_on FROM semesters WHERE id = $1",
@@ -598,6 +614,8 @@ router.post("/semester-schedules", requireAuth, scheduleWrite, async (req, res) 
             ]
         )
 
+        await upsertSection(req.body.course, req.body.year_level, req.body.section)
+
         res.status(201).json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)
@@ -719,6 +737,8 @@ router.post("/semester-schedules/import", requireAuth, scheduleWrite, async (req
                     req.user.id
                 ]
             )
+
+            await upsertSection(payload.course, payload.year_level, payload.section, client)
         }
 
         await client.query("COMMIT")
@@ -819,6 +839,9 @@ router.put("/semester-schedules/:id", requireAuth, scheduleWrite, async (req, re
         )
 
         if (rows.length === 0) return res.status(404).json({ message: "Schedule entry not found" })
+
+        await upsertSection(req.body.course, req.body.year_level, req.body.section)
+
         res.json({ schedule: rows[0] })
     } catch (error) {
         console.error(error)

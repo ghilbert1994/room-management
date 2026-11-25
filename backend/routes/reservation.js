@@ -60,6 +60,8 @@ const staffReservation = (reservation) => ({
     purpose_notes: reservation.purpose_notes || null,
     participants: reservation.participants,
     created_at: reservation.created_at,
+    section_id: reservation.section_id || null,
+    section: reservation.section_label || null,
     user: reservation.user_name || reservation.user_email
 })
 
@@ -98,6 +100,22 @@ async function resolvePurpose(purposeId, client = db) {
 const cleanNotes = (value) => {
     const text = String(value || "").trim()
     return text === "" ? null : text.slice(0, 500)
+}
+
+async function resolveSection(sectionId) {
+    const id = Number(sectionId)
+    if (!Number.isInteger(id) || id <= 0) return null
+
+    const { rows } = await db.query(
+        "SELECT id, course, year_level, name FROM sections WHERE id = $1 AND is_active",
+        [id]
+    )
+    if (rows.length === 0) return null
+
+    return {
+        ...rows[0],
+        label: `${rows[0].course} ${rows[0].year_level} ${rows[0].name}`
+    }
 }
 
 router.get("/all", requireAuth, async (req, res) => {
@@ -152,6 +170,8 @@ router.get("/all", requireAuth, async (req, res) => {
                 reservations.purpose_notes,
                 reservations.participants,
                 reservations.created_at,
+                reservations.section_id,
+                sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
@@ -163,6 +183,7 @@ router.get("/all", requireAuth, async (req, res) => {
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
+            LEFT JOIN sections ON sections.id = reservations.section_id
             ${where}
             ORDER BY reservations.time_start ASC
         `, params)
@@ -227,6 +248,8 @@ router.get("/get", requireAuth, async (req, res) => {
                 reservations.purpose_notes,
                 reservations.participants,
                 reservations.created_at,
+                reservations.section_id,
+                sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
@@ -238,6 +261,7 @@ router.get("/get", requireAuth, async (req, res) => {
             JOIN rooms ON reservations.room_id = rooms.id
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
+            LEFT JOIN sections ON sections.id = reservations.section_id
             WHERE reservations.id = $1
         `, [id])
 
@@ -264,6 +288,8 @@ router.get("/mine", requireAuth, async (req, res) => {
                    reservations.purpose_notes,
                    reservations.participants,
                    reservations.created_at,
+                   reservations.section_id,
+                   sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
                    purposes.label AS purpose_label,
                    rooms.id AS room_id,
                    rooms.name AS room_name,
@@ -275,6 +301,7 @@ router.get("/mine", requireAuth, async (req, res) => {
             JOIN rooms ON rooms.id = reservations.room_id
             JOIN users ON users.id = reservations.reserved_by
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
+            LEFT JOIN sections ON sections.id = reservations.section_id
             WHERE reservations.reserved_by = $1
             ORDER BY reservations.time_start DESC
         `, [req.user.id])
@@ -325,7 +352,7 @@ router.post("/:id/follow-up", requireAuth, async (req, res) => {
 })
 
 router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req, res) => {
-    const { roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants } = req.body
+    const { roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants, sectionId } = req.body
 
     if (!roomId || !reservedBy || !timeStart || !timeEnd || !purposeId || !participants) {
         return res.status(400).json({ error: "Room, user, start time, end time, purpose, and participants are required" })
@@ -357,6 +384,14 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
         const notes = cleanNotes(purposeNotes)
         if (purpose.label === "Others" && !notes) {
             return res.status(400).json({ error: "Please describe the purpose when choosing Others" })
+        }
+
+        const section = await resolveSection(sectionId)
+        if (sectionId && !section) {
+            return res.status(400).json({ error: "That section was not found" })
+        }
+        if (!section && req.user.role === "faculty") {
+            return res.status(400).json({ error: "Choose the section for this reservation" })
         }
 
         const roomResult = await db.query(
@@ -395,17 +430,17 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
 
         const reservationStatus = status || "pending"
         const { rows } = await db.query(`
-            INSERT INTO reservations (time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants)
-            VALUES ($1::timestamp, $2::timestamp, $3, $4, $5, $6, $7, $8)
-            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants
-        `, [start, end, reservedBy, roomId, reservationStatus, purpose.id, notes, participants])
+            INSERT INTO reservations (time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants, section_id)
+            VALUES ($1::timestamp, $2::timestamp, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants, section_id
+        `, [start, end, reservedBy, roomId, reservationStatus, purpose.id, notes, participants, section?.id || null])
 
         const coordinatorMessage = `New reservation request for ${roomResult.rows[0].name} by ${userResult.rows[0].name}.`
         await notifyRoles(["admin"], coordinatorMessage)
 
         res.status(201).json({
             message: "Reservation created successfully",
-            reservation: { ...rows[0], purpose: purpose.label }
+            reservation: { ...rows[0], purpose: purpose.label, section: section?.label || null }
         })
     } catch (error) {
         console.error(error)
@@ -418,7 +453,7 @@ router.post("/add", requireAuth, requireCapability("bookingCreate"), async (req,
 })
 
 router.put("/edit", requireAuth, async (req, res) => {
-    const { id, roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants } = req.body
+    const { id, roomId, reservedBy, timeStart, timeEnd, status, purposeId, purposeNotes, participants, sectionId } = req.body
     if (!id || !roomId || !reservedBy || !timeStart || !timeEnd || !status || !purposeId || !participants) {
         return res.status(400).json({ error: "All fields are required" })
     }
@@ -445,6 +480,14 @@ router.put("/edit", requireAuth, async (req, res) => {
         const notes = cleanNotes(purposeNotes)
         if (purpose.label === "Others" && !notes) {
             return res.status(400).json({ error: "Please describe the purpose when choosing Others" })
+        }
+
+        const section = await resolveSection(sectionId)
+        if (sectionId && !section) {
+            return res.status(400).json({ error: "That section was not found" })
+        }
+        if (!section && req.user.role === "faculty") {
+            return res.status(400).json({ error: "Choose the section for this reservation" })
         }
 
         const reservationResult = await db.query(
@@ -490,14 +533,15 @@ router.put("/edit", requireAuth, async (req, res) => {
         const { rows } = await db.query(`
             UPDATE reservations
             SET time_start = $1::timestamp, time_end = $2::timestamp, reserved_by = $3,
-                room_id = $4, status = $5, purpose_id = $6, purpose_notes = $7, participants = $8
-            WHERE id = $9
-            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants
-        `, [start, end, effectiveReservedBy, roomId, status, purpose.id, notes, participants, id])
+                room_id = $4, status = $5, purpose_id = $6, purpose_notes = $7, participants = $8,
+                section_id = $9
+            WHERE id = $10
+            RETURNING id, time_start, time_end, reserved_by, room_id, status, purpose_id, purpose_notes, participants, section_id
+        `, [start, end, effectiveReservedBy, roomId, status, purpose.id, notes, participants, section?.id || null, id])
 
         res.json({
             message: "Reservation updated successfully",
-            reservation: { ...rows[0], purpose: purpose.label }
+            reservation: { ...rows[0], purpose: purpose.label, section: section?.label || null }
         })
     } catch (error) {
         console.error(error)

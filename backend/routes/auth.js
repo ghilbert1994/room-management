@@ -68,7 +68,15 @@ router.post("/login", authLimiter, async (req, res) => {
     const email = parsed.data.email.trim().toLowerCase()
 
     try {
-        const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [email])
+        const { rows } = await db.query(`
+            SELECT users.*,
+                   sections.course AS section_course,
+                   sections.year_level AS section_year,
+                   sections.name AS section_name
+            FROM users
+            LEFT JOIN sections ON sections.id = users.section_id
+            WHERE users.email = $1
+        `, [email])
         const user = rows[0]
 
         if (!user) return res.status(401).json({ message: "Invalid email or password" })
@@ -85,7 +93,16 @@ router.post("/login", authLimiter, async (req, res) => {
 
         res.json({
             message: "Login successful",
-            user: { id: user.id, email: user.email, name: user.name, role: normalizeRole(user.role) }
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: normalizeRole(user.role),
+                section_id: user.section_id || null,
+                section_label: user.section_course
+                    ? `${user.section_course} ${user.section_year} ${user.section_name}`
+                    : null
+            }
         })
     } catch (error) {
         console.error(error)
@@ -102,6 +119,10 @@ router.post("/register", authLimiter, async (req, res) => {
 
     const { name, email, password, invite_code: inviteCode } = parsed.data
     const requestedRole = normalizeRole(parsed.data.role)
+    const isStudent = requestedRole === "student"
+
+    const requestedSectionId = Number(req.body.sectionId)
+    const sectionId = Number.isInteger(requestedSectionId) && requestedSectionId > 0 ? requestedSectionId : null
 
     if (!permissions.roles.includes(requestedRole)) {
         return res.status(400).json({ message: "Invalid role" })
@@ -117,6 +138,32 @@ router.post("/register", authLimiter, async (req, res) => {
         if (existingUser.rows.length > 0) {
             await client.query("ROLLBACK")
             return res.status(409).json({ message: "Email is already registered" })
+        }
+
+        let section = null
+
+        if (isStudent) {
+            const sectionCount = await client.query("SELECT count(*)::int AS total FROM sections WHERE is_active")
+
+            if (!sectionId && sectionCount.rows[0].total > 0) {
+                await client.query("ROLLBACK")
+                return res.status(400).json({ message: "Choose your section" })
+            }
+
+            if (sectionId) {
+                const sectionRows = await client.query(
+                    "SELECT id, course, year_level, name FROM sections WHERE id = $1 AND is_active",
+                    [sectionId]
+                )
+                if (sectionRows.rows.length === 0) {
+                    await client.query("ROLLBACK")
+                    return res.status(400).json({ message: "That section was not found" })
+                }
+                section = sectionRows.rows[0]
+            }
+        } else if (sectionId) {
+            await client.query("ROLLBACK")
+            return res.status(400).json({ message: "Only student accounts belong to a section" })
         }
 
         let invite = null
@@ -139,10 +186,10 @@ router.post("/register", authLimiter, async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10)
 
         const { rows } = await client.query(
-            `INSERT INTO users (name, email, password, role, invite_code_id)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, name, email, role`,
-            [name.trim(), normalizedEmail, hashedPassword, requestedRole, invite?.id || null]
+            `INSERT INTO users (name, email, password, role, invite_code_id, section_id)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, name, email, role, section_id`,
+            [name.trim(), normalizedEmail, hashedPassword, requestedRole, invite?.id || null, section?.id || null]
         )
 
         if (invite) {
@@ -156,7 +203,11 @@ router.post("/register", authLimiter, async (req, res) => {
 
         res.status(201).json({
             message: "Account created successfully",
-            user: { ...rows[0], role: normalizeRole(rows[0].role) }
+            user: {
+                ...rows[0],
+                role: normalizeRole(rows[0].role),
+                section_label: section ? `${section.course} ${section.year_level} ${section.name}` : null
+            }
         })
     } catch (error) {
         await client.query("ROLLBACK").catch(() => {})
@@ -275,13 +326,36 @@ router.get("/me", async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ message: "Not logged in" })
 
     try {
-        const { rows } = await db.query(
-            "SELECT id, email, name, role::text AS role, is_active FROM users WHERE id = $1",
-            [req.session.userId]
-        )
+        const { rows } = await db.query(`
+            SELECT users.id,
+                   users.email,
+                   users.name,
+                   users.role::text AS role,
+                   users.is_active,
+                   users.section_id,
+                   sections.course AS section_course,
+                   sections.year_level AS section_year,
+                   sections.name AS section_name
+            FROM users
+            LEFT JOIN sections ON sections.id = users.section_id
+            WHERE users.id = $1
+        `, [req.session.userId])
         const user = rows[0]
         if (!user || user.is_active === false) return res.status(404).json({ message: "User not found" })
-        res.json({ user: { ...user, role: normalizeRole(user.role) } })
+
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: normalizeRole(user.role),
+                is_active: user.is_active,
+                section_id: user.section_id || null,
+                section_label: user.section_course
+                    ? `${user.section_course} ${user.section_year} ${user.section_name}`
+                    : null
+            }
+        })
     } catch (error) {
         console.error(error)
         res.status(500).json({ message: "Server error" })
@@ -299,7 +373,8 @@ router.put("/update-profile", requireAuth, async (req, res) => {
         const { rows } = await db.query(
             `UPDATE users SET name = $1, updated_at = now()
              WHERE id = $2
-             RETURNING id, email, name, role::text AS role`,
+             RETURNING id, email, name, role::text AS role, section_id,
+                 (SELECT course || ' ' || year_level || ' ' || name FROM sections WHERE sections.id = users.section_id) AS section_label`,
             [name, req.user.id]
         )
         res.json({ message: "Profile updated successfully", user: { ...rows[0], role: normalizeRole(rows[0].role) } })

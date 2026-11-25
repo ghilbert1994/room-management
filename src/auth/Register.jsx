@@ -2,7 +2,7 @@
 import './Login.css'
 import logo from '../assets/logo.png'
 import { Link } from 'react-router-dom'
-import { useState, useContext } from 'react'
+import { useEffect, useState, useContext } from 'react'
 import { UserContext } from './UserContext.jsx'
 
 const ROLE_OPTIONS = [
@@ -19,11 +19,26 @@ function Register() {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [role, setRole] = useState("student")
     const [inviteCode, setInviteCode] = useState("")
+    const [sectionId, setSectionId] = useState("")
+    const [sections, setSections] = useState([])
     const [error, setError] = useState("")
     const [submitting, setSubmitting] = useState(false)
     const { setUser } = useContext(UserContext)
 
     const selectedRole = ROLE_OPTIONS.find(option => option.value === role)
+
+    useEffect(() => {
+        const loadSections = async () => {
+            try {
+                const response = await fetch('/api/sections/public')
+                const data = await response.json()
+                if (response.ok) setSections(data.sections || [])
+            } catch {
+                setSections([])
+            }
+        }
+        loadSections()
+    }, [])
 
     const handleSubmit = async (event) => {
         event.preventDefault()
@@ -46,6 +61,7 @@ function Register() {
                     email, 
                     password, 
                     role,
+                    sectionId: role === 'student' ? sectionId || undefined : undefined,
                     invite_code: selectedRole?.needsCode ? inviteCode : undefined
                 })
             })
@@ -132,6 +148,7 @@ function Register() {
                             onChange={(event) => {
                                 setRole(event.target.value)
                                 setInviteCode("")
+                                setSectionId("")
                             }}
                         >
                             {ROLE_OPTIONS.map(option => (
@@ -139,6 +156,26 @@ function Register() {
                             ))}
                         </select>
                     </div>
+
+                    {role === 'student' && sections.length > 0 && (
+                        <div className="prompt-label-box">
+                            <label>Section</label>
+                            <select
+                                required
+                                className="prompt-box"
+                                value={sectionId}
+                                onChange={(event) => setSectionId(event.target.value)}
+                            >
+                                <option value="">Select your section</option>
+                                {sections.map((section) => (
+                                    <option key={section.id} value={section.id}>{section.label}</option>
+                                ))}
+                            </select>
+                            <small style={{ display: 'block', marginTop: '4px', color: 'var(--text-muted)' }}>
+                                Your section is used for reservations and equipment reports.
+                            </small>
+                        </div>
+                    )}
 
                     {selectedRole?.needsCode && (
                         <div className="prompt-label-box">

@@ -189,6 +189,13 @@ function Settings() {
                                     <input value={roleLabel} disabled />
                                 </div>
 
+                                {normalizeRole(user.role) === "student" && (
+                                    <div className="settings-field">
+                                        <label>Section</label>
+                                        <input value={user.section_label || "Not set"} disabled />
+                                    </div>
+                                )}
+
                                 <div className="settings-field settings-field-wide">
                                     <label>Email Address</label>
                                     <input value={user.email} disabled />

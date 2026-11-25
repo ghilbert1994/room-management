@@ -139,7 +139,9 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Registration succeeds and lands on the dashboard.
 - [ ] The code now shows `used` (or uses `1/1`).
 - [ ] Try the same code again → rejected as used.
-- [ ] Register a **Student** without a code → succeeds.
+- [ ] Register a **Student** without a code → succeeds once a section is chosen.
+- [ ] Student registration has a required **Section** dropdown listing sections.
+- [ ] Try registering a student without a section → rejected.
 - [ ] Try a made-up code for Faculty → rejected.
 
 ### MIS Staff (room/lab operations)
@@ -151,6 +153,8 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### User Management
 - [ ] Go to **User Management**.
+- [ ] The **Section** column shows a dropdown for students and `—` for staff.
+- [ ] Change a student's section → it persists after reload and shows in their Settings.
 - [ ] Search for the QA account and filter by role.
 - [ ] Change its role (e.g. Faculty → MIS Staff) → succeeds; log in again to see the new role.
 - [ ] Deactivate the account → login is blocked with a clear message.
@@ -235,6 +239,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### Create a booking as admin or faculty
 - [ ] Log in as `teacher@gmail.com` → **Lab Reservation**.
+- [ ] The **Section** dropdown is present and required for faculty.
 - [ ] Add a booking for a free room/time.
 - [ ] The booking appears in the calendar.
 - [ ] Faculty cannot book on behalf of another user (API returns 403 if attempted).
@@ -271,7 +276,8 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] **Notify students** re-sends a reminder for that issue.
 - [ ] As a student, the bell badge increments within 30 seconds and the message is listed.
 - [ ] As faculty, open **Report an Issue** → submit a report for a room and for a specific unit.
-- [ ] The report appears under **Reported Issues** for MIS with the reporter name.
+- [ ] The report appears under **Reported Issues** for MIS with the reporter name and section.
+- [ ] A report without a section is rejected (`Choose the section that was scheduled`).
 - [ ] MIS resolves it (Flag Unit / Set maintenance / Mark fixed / Dismiss) → reporter gets a notification.
 - [ ] Attach one photo and one short video → both appear under **Evidence** and open in a preview.
 - [ ] Uploading a file larger than 4 MB, a fourth file, or more than 10 MB total → rejected with a clear message.
@@ -281,6 +287,7 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 
 ### Manage bookings
 - [ ] As admin, see every active reservation (pending/future); approve/reject and confirm status changes.
+- [ ] The reservation table includes a **Section** column, and the history export includes it.
 - [ ] Only admin can approve or reject (`PUT /api/reservation/update-status`); faculty and MIS get `403`.
 - [ ] Status changes create a notification for the reservation owner.
 - [ ] Approving/rejecting updates the Dashboard counters and other open booking tabs without a manual refresh.
