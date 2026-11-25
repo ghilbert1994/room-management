@@ -15,6 +15,8 @@ function LabManagement() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
     const [showPCModal, setShowPCModal] = useState(false)
+    const [modalError, setModalError] = useState("")
+    const [saving, setSaving] = useState(false)
 
     const [activeLab, setActiveLab] = useState(null)
     const [computers, setComputers] = useState([])
@@ -46,27 +48,41 @@ function LabManagement() {
 
     const handleAddSubmit = async (event) => {
         event.preventDefault()
-        const response = await fetch(`/api/lab/add`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ 
-                roomName, 
-                roomBuilding, 
-                roomCapacity, 
-                roomPCS,
-                roomType
-            })
-        })
+        setSaving(true)
+        setModalError("")
 
-        if (response.ok) {
+        try {
+            const response = await fetch(`/api/lab/add`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ 
+                    roomName, 
+                    roomBuilding, 
+                    roomCapacity, 
+                    roomPCS,
+                    roomType
+                })
+            })
+            const data = await response.json().catch(() => ({}))
+
+            if (!response.ok) {
+                setModalError(data.error || "Failed to add the room.")
+                return
+            }
+
             await refreshLabs()
             setShowModal(false)
             setRoomName(""); setRoomBuilding(""); setRoomCapacity(""); setRoomPCS(""); setRoomType("laboratory")
+        } catch {
+            setModalError("Network error. Please try again.")
+        } finally {
+            setSaving(false)
         }
     }
 
     const handleEditClick = (lab) => {
+        setModalError("")
         setEditRoom(lab.name)
         setEditRoomName(lab.name)
         setEditRoomBuilding(lab.location)
@@ -78,39 +94,57 @@ function LabManagement() {
 
     const handleEditSubmit = async (event) => {
         event.preventDefault()
-        const response = await fetch(`/api/lab/edit`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-                roomName: editRoom,
-                newRoomName: editRoomName,
-                roomBuilding: editRoomBuilding,
-                roomCapacity: editRoomCapacity,
-                roomPCS: editRoomPCS,
-                roomType: editRoomType
-            })
-        })
+        setSaving(true)
+        setModalError("")
 
-        if (response.ok) {
+        try {
+            const response = await fetch(`/api/lab/edit`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    roomName: editRoom,
+                    newRoomName: editRoomName,
+                    roomBuilding: editRoomBuilding,
+                    roomCapacity: editRoomCapacity,
+                    roomPCS: editRoomPCS,
+                    roomType: editRoomType
+                })
+            })
+            const data = await response.json().catch(() => ({}))
+
+            if (!response.ok) {
+                setModalError(data.error || "Failed to save the room.")
+                return
+            }
+
             await refreshLabs()
             setEditRoom(editRoomName)
             setShowEditModal(false)
+        } catch {
+            setModalError("Network error. Please try again.")
+        } finally {
+            setSaving(false)
         }
     }
 
     const handleDelete = async () => {
+        setModalError("")
         const response = await fetch(`/api/lab/delete`, {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
             body: JSON.stringify({ roomName: editRoom })
         })
+        const data = await response.json().catch(() => ({}))
 
-        if (response.ok) {
-            await refreshLabs()
-            setShowEditModal(false)
+        if (!response.ok) {
+            setModalError(data.error || "Failed to delete the room.")
+            return
         }
+
+        await refreshLabs()
+        setShowEditModal(false)
     }
 
     const handleToggleMaintenance = (lab) => {
@@ -208,14 +242,15 @@ function LabManagement() {
                     <h1 id="lab-management-title-text">{PAGE_TITLES.labManagement}</h1>
                 </div>
                 <div className="lab-management-title-right">
-                    <button className="lab-management-title-register" onClick={() => setShowModal(true)}>
+                    <button className="lab-management-title-register" onClick={() => { setModalError(""); setShowModal(true) }}>
                         <PlusCircle size={20} strokeWidth={3} /> Register New Room
                     </button>
                 </div>
             </div>
 
-            <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Register New Room">
+            <Modal isOpen={showModal} onClose={() => { setShowModal(false); setModalError("") }} title="Register New Room">
                 <form onSubmit={handleAddSubmit}>
+                    {modalError && <div className="schedule-error" style={{ marginBottom: 12 }}>{modalError}</div>}
                     <input type="text" placeholder="Room number" value={roomName} onChange={(e) => setRoomName(e.target.value)} required />
                     <input type="text" placeholder="Building" value={roomBuilding} onChange={(e) => setRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={roomCapacity} onChange={(e) => setRoomCapacity(e.target.value)} required />
@@ -234,12 +269,13 @@ function LabManagement() {
                         <input type="number" placeholder="Available Units" value={roomPCS} onChange={(e) => setRoomPCS(e.target.value)} required />
                     )}
 
-                    <button type="submit">Add Room</button>
+                    <button type="submit" disabled={saving}>{saving ? "Adding..." : "Add Room"}</button>
                 </form>
             </Modal>
 
-            <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Room">
+            <Modal isOpen={showEditModal} onClose={() => { setShowEditModal(false); setModalError("") }} title="Edit Room">
                 <form onSubmit={handleEditSubmit}>
+                    {modalError && <div className="schedule-error" style={{ marginBottom: 12 }}>{modalError}</div>}
                     <input type="text" placeholder="Room number" value={editRoomName} onChange={(e) => setEditRoomName(e.target.value)} required />
                     <input type="text" placeholder="Building" value={editRoomBuilding} onChange={(e) => setEditRoomBuilding(e.target.value)} required />
                     <input type="number" placeholder="Capacity" value={editRoomCapacity} onChange={(e) => setEditRoomCapacity(e.target.value)} required />
@@ -258,7 +294,7 @@ function LabManagement() {
                         <input type="number" placeholder="Available Units" value={editRoomPCS} onChange={(e) => setEditRoomPCS(e.target.value)} required />
                     )}
 
-                    <button type="submit">Save Changes</button>
+                    <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
                     <button type="button" className="lab-management-delete" onClick={handleDelete}>
                         <Trash2 /> Delete Room
                     </button>
