@@ -303,6 +303,13 @@ function ReservationHistory() {
                                                 <span style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold", backgroundColor: colors.bg, color: colors.text, textTransform: "capitalize" }}>
                                                     {statusLabel(reservation.status)}
                                                 </span>
+                                                {reservation.status === "cancelled" && (
+                                                    <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--text-muted)" }}>
+                                                        {reservation.cancelled_by_name ? `By ${reservation.cancelled_by_name}` : ""}
+                                                        {reservation.cancelled_at ? ` · ${parseLocal(reservation.cancelled_at).toLocaleDateString()}` : ""}
+                                                        {reservation.cancellation_reason ? ` · ${reservation.cancellation_reason}` : ""}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ padding: "12px", fontSize: "13px", color: "var(--text-muted)" }}>
                                                 {requested ? requested.toLocaleDateString() : "N/A"}

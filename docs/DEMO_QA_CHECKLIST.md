@@ -223,6 +223,10 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Move to another week → the recurring classes appear on their weekday.
 - [ ] **My Reservations** lists only that teacher's own reservations.
 - [ ] Cancel one pending/approved request → status updates.
+- [ ] The cancelled request stays listed with **Cancelled**, who cancelled it, the date, and the reason.
+- [ ] The freed room/time can be booked again.
+- [ ] Cancelling the same request twice → rejected as already closed.
+- [ ] The admin receives a notification naming the room, date, section, and reason.
 - [ ] **Follow up** on a pending request → the admin receives a notification.
 - [ ] The sidebar has no **Manage Reservations** or **Reservation History**.
 - [ ] Faculty cannot approve: `PUT /api/reservation/update-status` returns `403`.

@@ -286,20 +286,21 @@ function Reservation() {
     }
 
     const handleCancelBooking = async (id) => {
-        if (!window.confirm("Cancel this reservation? This will free the room for that time.")) return
+        const reason = window.prompt("Cancel this reservation? You can add a reason (optional).", "")
+        if (reason === null) return
 
         try {
-            const response = await fetch(`${API_URL}/delete`, {
-                method: "DELETE",
+            const response = await fetch(`${API_URL}/cancel`, {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ id })
+                body: JSON.stringify({ id, reason })
             })
             const data = await response.json()
             if (!response.ok) throw new Error(data.error || "Failed to cancel reservation")
 
             setSelectedReservation(null)
-            setNotice("Reservation canceled. The room is now available for that time.")
+            setNotice("Reservation cancelled. The room is now available for that time.")
             await fetchReservations()
             notifyBookingsChanged()
         } catch (error) {
@@ -475,10 +476,29 @@ function Reservation() {
                                     {selectedReservation.status}
                                 </strong>
                             </div>
+                            {selectedReservation.status === "cancelled" && (
+                                <>
+                                    <div className="reservation-detail">
+                                        <span>Cancelled By</span>
+                                        <strong>{selectedReservation.cancelled_by_name || "N/A"}</strong>
+                                    </div>
+                                    <div className="reservation-detail">
+                                        <span>Cancelled On</span>
+                                        <strong>{selectedReservation.cancelled_at ? new Date(selectedReservation.cancelled_at).toLocaleString() : "N/A"}</strong>
+                                    </div>
+                                    {selectedReservation.cancellation_reason && (
+                                        <div className="reservation-detail">
+                                            <span>Reason</span>
+                                            <strong>{selectedReservation.cancellation_reason}</strong>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
 
                         <div style={{ display: 'flex', padding: '16px 24px', borderTop: '1px solid #e5e5e5', width: '100%', boxSizing: 'border-box' }}>
-                            {(["admin", "mis_staff"].includes(normalizeRole(user.role)) || user.name === selectedReservation.user) && (
+                            {!["cancelled", "rejected", "no_show"].includes(selectedReservation.status)
+                                && (["admin", "mis_staff"].includes(normalizeRole(user.role)) || user.name === selectedReservation.user) && (
                                 <button 
                                     type="button" 
                                     onClick={() => handleCancelBooking(selectedReservation.id)}

@@ -71,16 +71,20 @@ function MyReservations() {
     }, [reservations, filter, search])
 
     const cancelReservation = async (reservation) => {
-        if (!window.confirm(`Cancel your reservation for ${reservation.room}?`)) return
+        const reason = window.prompt(
+            `Cancel your reservation for ${reservation.room}? You can add a reason (optional).`,
+            ""
+        )
+        if (reason === null) return
 
         setCanceling(String(reservation.id))
         setNotice(null)
         try {
-            const response = await fetch("/api/reservation/delete", {
-                method: "DELETE",
+            const response = await fetch("/api/reservation/cancel", {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ id: reservation.id })
+                body: JSON.stringify({ id: reservation.id, reason })
             })
             const data = await response.json()
             if (!response.ok) throw new Error(data.error || "Failed to cancel reservation")
@@ -226,6 +230,13 @@ function MyReservations() {
                                                 <span style={{ padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700, backgroundColor: colors.bg, color: colors.text, textTransform: "capitalize" }}>
                                                     {reservation.status}
                                                 </span>
+                                                {reservation.status === "cancelled" && (
+                                                    <div style={{ marginTop: 4, fontSize: 11.5, color: "var(--text-muted)" }}>
+                                                        {reservation.cancelled_by_name ? `By ${reservation.cancelled_by_name}` : ""}
+                                                        {reservation.cancelled_at ? ` · ${parseLocal(reservation.cancelled_at).toLocaleDateString()}` : ""}
+                                                        {reservation.cancellation_reason ? ` · ${reservation.cancellation_reason}` : ""}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td>
                                                 <div className="row-actions">

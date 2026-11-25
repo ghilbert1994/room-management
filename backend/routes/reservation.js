@@ -62,6 +62,10 @@ const staffReservation = (reservation) => ({
     created_at: reservation.created_at,
     section_id: reservation.section_id || null,
     section: reservation.section_label || null,
+    cancelled_at: reservation.cancelled_at || null,
+    cancelled_by: reservation.cancelled_by || null,
+    cancelled_by_name: reservation.cancelled_by_name || null,
+    cancellation_reason: reservation.cancellation_reason || null,
     user: reservation.user_name || reservation.user_email
 })
 
@@ -172,6 +176,10 @@ router.get("/all", requireAuth, async (req, res) => {
                 reservations.created_at,
                 reservations.section_id,
                 sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
+                reservations.cancelled_at,
+                reservations.cancelled_by,
+                canceller.name AS cancelled_by_name,
+                reservations.cancellation_reason,
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
@@ -184,6 +192,7 @@ router.get("/all", requireAuth, async (req, res) => {
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             LEFT JOIN sections ON sections.id = reservations.section_id
+            LEFT JOIN users AS canceller ON canceller.id = reservations.cancelled_by
             ${where}
             ORDER BY reservations.time_start ASC
         `, params)
@@ -250,6 +259,10 @@ router.get("/get", requireAuth, async (req, res) => {
                 reservations.created_at,
                 reservations.section_id,
                 sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
+                reservations.cancelled_at,
+                reservations.cancelled_by,
+                canceller.name AS cancelled_by_name,
+                reservations.cancellation_reason,
                 purposes.label AS purpose_label,
                 rooms.id AS room_id,
                 rooms.name AS room_name,
@@ -262,6 +275,7 @@ router.get("/get", requireAuth, async (req, res) => {
             JOIN users ON reservations.reserved_by = users.id
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             LEFT JOIN sections ON sections.id = reservations.section_id
+            LEFT JOIN users AS canceller ON canceller.id = reservations.cancelled_by
             WHERE reservations.id = $1
         `, [id])
 
@@ -290,6 +304,10 @@ router.get("/mine", requireAuth, async (req, res) => {
                    reservations.created_at,
                    reservations.section_id,
                    sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label,
+                   reservations.cancelled_at,
+                   reservations.cancelled_by,
+                   canceller.name AS cancelled_by_name,
+                   reservations.cancellation_reason,
                    purposes.label AS purpose_label,
                    rooms.id AS room_id,
                    rooms.name AS room_name,
@@ -302,6 +320,7 @@ router.get("/mine", requireAuth, async (req, res) => {
             JOIN users ON users.id = reservations.reserved_by
             LEFT JOIN reservation_purposes AS purposes ON purposes.id = reservations.purpose_id
             LEFT JOIN sections ON sections.id = reservations.section_id
+            LEFT JOIN users AS canceller ON canceller.id = reservations.cancelled_by
             WHERE reservations.reserved_by = $1
             ORDER BY reservations.time_start DESC
         `, [req.user.id])
@@ -587,36 +606,79 @@ router.put("/update-status", requireAuth, requireCapability("bookingManage"), as
     }
 })
 
-router.delete("/delete", requireAuth, async (req, res) => {
-    const { id } = req.body
+const cancelReservation = async (req, res) => {
+    const { id, reason } = req.body
     const user = req.user
 
     if (!id) return res.status(400).json({ error: "Reservation ID is required" })
 
     try {
-        const resRes = await db.query(
-            "SELECT id, reserved_by FROM reservations WHERE id = $1",
-            [id]
-        )
+        const resRes = await db.query(`
+            SELECT reservations.id,
+                   reservations.reserved_by,
+                   reservations.status,
+                   reservations.time_start,
+                   rooms.name AS room_name,
+                   sections.course || ' ' || sections.year_level || ' ' || sections.name AS section_label
+            FROM reservations
+            JOIN rooms ON rooms.id = reservations.room_id
+            LEFT JOIN sections ON sections.id = reservations.section_id
+            WHERE reservations.id = $1
+        `, [id])
 
         if (resRes.rows.length === 0) return res.status(404).json({ error: "Reservation not found" })
+
         const reservation = resRes.rows[0]
 
-        const canDelete = user.role === "admin"
+        const canCancel = user.role === "admin"
             || user.role === "mis_staff"
             || String(user.id) === String(reservation.reserved_by)
 
-        if (!canDelete) {
+        if (!canCancel) {
             return res.status(403).json({ error: "You do not have permission to cancel this reservation" })
         }
 
-        await db.query("DELETE FROM reservations WHERE id = $1", [id])
-        res.json({ message: "Reservation deleted successfully" })
+        if (["rejected", "cancelled", "no_show"].includes(reservation.status)) {
+            return res.status(409).json({ error: "This reservation is already closed" })
+        }
+
+        const note = String(reason || "").trim().slice(0, 500) || null
+
+        await db.query(`
+            UPDATE reservations
+            SET status = 'cancelled',
+                cancelled_at = now(),
+                cancelled_by = $1,
+                cancellation_reason = $2
+            WHERE id = $3
+        `, [user.id, note, id])
+
+        const date = String(reservation.time_start).slice(0, 10)
+        const label = `${reservation.room_name} on ${date}${reservation.section_label ? ` (${reservation.section_label})` : ""}`
+
+        if (user.role === "faculty") {
+            await notifyRoles(
+                ["admin"],
+                `Reservation cancelled by ${user.name || user.email}: ${label}${note ? ` — ${note}` : ""}.`
+            )
+        }
+
+        if (String(reservation.reserved_by) !== String(user.id)) {
+            await db.query(
+                "INSERT INTO notifications (user_id, message) VALUES ($1, $2)",
+                [reservation.reserved_by, `Your reservation for ${label} was cancelled by ${user.name || user.email}.`]
+            )
+        }
+
+        res.json({ message: "Reservation cancelled" })
     } catch (error) {
         console.error(error)
-        res.status(500).json({ error: "Failed to delete reservation" })
+        res.status(500).json({ error: "Failed to cancel reservation" })
     }
-})
+}
+
+router.put("/cancel", requireAuth, cancelReservation)
+router.delete("/delete", requireAuth, cancelReservation)
 
 router.get("/analytics", requireAuth, requireCapability("analyticsRead"), async (req, res) => {
     try {

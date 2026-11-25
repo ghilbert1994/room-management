@@ -19,6 +19,7 @@ LabEase is a full-stack web application designed to streamline the scheduling, m
 - Schedule Conflict Protection: overlapping room, instructor, or section assignments are rejected, along with classroom/laboratory mismatches.
 - Controlled Reservation Purpose: the purpose is chosen from a maintained list (`reservation_purposes`) instead of free text, so reports group correctly.
 - Reservation History / Archive: past and closed reservations move to a filterable, exportable history view, keeping the active queue short.
+- Soft Cancellations: cancelled bookings stay visible with who cancelled them, when, and an optional reason; a faculty cancellation notifies every admin and frees the room slot.
 - Facility Issue Notifications: putting a room under maintenance or reporting a unit broken notifies every active student, and marks the issue resolved with a follow-up notice.
 - Faculty Equipment Reports: professors and students report a broken unit, room, or equipment problem; MIS/Admin flag it for maintenance or dismiss it, and the reporter is notified when it is resolved.
 - Report Evidence: photos and short videos can be attached to a report, capped at 3 files / 4 MB each / 10 MB total, and viewed by staff and the reporter.
@@ -70,6 +71,7 @@ node migrations/run.js 009_room_types.sql
 node migrations/run.js 010_facility_report_attachments.sql
 node migrations/run.js 011_sections.sql
 node migrations/run.js 012_password_resets.sql
+node migrations/run.js 013_reservation_cancellations.sql
 ```
 
 `006_reservation_purposes.sql` is the normalization step for reservation
