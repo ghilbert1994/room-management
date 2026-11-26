@@ -359,6 +359,8 @@ What still needs a human eye: visual polish, mobile layout, print formatting, CS
 - [ ] Open **Analytics Reports**.
 - [ ] Metrics, peak-hours chart, and lab-usage bars render.
 - [ ] The export dropdown offers **CSV**, **Excel (.xls)**, and **PDF (print)**.
+- [ ] **Peak Usage Hours** shows a bar per hour (7 AM–8 PM) from approved reservations, with a "Busiest" summary.
+- [ ] Approving or cancelling a reservation updates the chart without a manual refresh (event or 30-second poll).
 - [ ] CSV downloads a `.csv`, Excel downloads a `.xls` that opens in Excel, PDF opens the print dialog for Save as PDF.
 - [ ] **Reservation History** has the same three export choices and exports the filtered rows.
 - [ ] Students and faculty cannot open the page.

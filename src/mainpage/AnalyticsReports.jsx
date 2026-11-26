@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import "./AnalyticsReports.css"
 import Card from "./Card";
 import { PageSkeleton } from "../layout/Loading.jsx";
@@ -5,6 +6,7 @@ import { Download } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { PAGE_TITLES } from '../lib/pageTitles.js'
 import { EXPORT_FORMATS, exportTable } from '../lib/exportTable.js'
+import { subscribeToDataChanges } from '../lib/dataEvents.js'
 import { useTheme } from '../theme/themeContext.js'
 import { themeById } from '../lib/themes.js'
 import {
@@ -22,35 +24,57 @@ function AnalyticsReports() {
     const [loading, setLoading] = useState(true)
     const [exportFormat, setExportFormat] = useState("csv")
 
-    useEffect(() => {
-        const fetchAnalytics = async () => {
-            try {
-                const response = await fetch(`/api/reservation/analytics`, { credentials: "include" })
-                const data = await response.json()
-                if (response.ok) {
-                    setAnalytics(data)
-                }
-            } catch (error) {
-                console.error("Failed to load analytics:", error)
-            } finally {
-                setLoading(false)
+    const fetchAnalytics = async () => {
+        try {
+            const response = await fetch(`/api/reservation/analytics`, { credentials: "include" })
+            const data = await response.json()
+            if (response.ok) {
+                setAnalytics(data)
             }
+        } catch (error) {
+            console.error("Failed to load analytics:", error)
+        } finally {
+            setLoading(false)
         }
+    }
 
+    useEffect(() => {
         fetchAnalytics()
+    }, [])
+
+    // Keep the report current: react to approvals/cancellations from any tab,
+    // poll as a fallback, and refresh when the window regains focus.
+    useEffect(() => {
+        const unsubscribe = subscribeToDataChanges("bookings:changed", fetchAnalytics)
+        const interval = setInterval(fetchAnalytics, 30000)
+        const handleFocus = () => fetchAnalytics()
+
+        window.addEventListener("focus", handleFocus)
+        return () => {
+            unsubscribe()
+            clearInterval(interval)
+            window.removeEventListener("focus", handleFocus)
+        }
     }, [])
 
     if (loading) return <PageSkeleton label="Loading analytics" stats={4} chart rows={4} columns={5} />
 
     const topLab = analytics.labUsage.length > 0 ? analytics.labUsage[0].name : "N/A"
+    const peakHours = analytics.peakHours || []
+    const busiestHour = peakHours.reduce(
+        (best, item) => (item.bookings > (best?.bookings || 0) ? item : best),
+        null
+    )
 
     const exportAnalytics = () => {
         const columns = ["Section", "Item", "Value"]
         const rows = [
             ["Summary", "Total Approved Reservations", analytics.totalBookings],
             ["Summary", "Most Used Laboratory", topLab],
+            ["Summary", "Busiest Hour", busiestHour && busiestHour.bookings > 0 ? busiestHour.hour : "No data"],
             ...analytics.labUsage.map((item) => ["Laboratory Usage", item.name, `${item.value}%`]),
-            ...(analytics.weeklyTrends || []).map((item) => ["Reservations by Day", item.day, item.bookings])
+            ...(analytics.weeklyTrends || []).map((item) => ["Reservations by Day", item.day, item.bookings]),
+            ...peakHours.map((item) => ["Peak Usage Hours", item.hour, item.bookings])
         ]
 
         try {
@@ -131,13 +155,20 @@ function AnalyticsReports() {
                 </Card>
 
                 <Card columns={8} rows={4}>
-                    <h2>Peak Usage Hours (Weekly)</h2>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                        <h2 style={{ margin: 0 }}>Peak Usage Hours</h2>
+                        <span style={{ fontSize: 12.5, color: "var(--text-muted)", fontWeight: 700 }}>
+                            {busiestHour && busiestHour.bookings > 0
+                                ? `Busiest: ${busiestHour.hour} · ${busiestHour.bookings} reservation${busiestHour.bookings === 1 ? "" : "s"}`
+                                : "No approved reservations yet"}
+                        </span>
+                    </div>
                     <ResponsiveContainer width="100%" height="90%">
-                        <BarChart data={analytics.peakHours}>
+                        <BarChart data={peakHours} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
                             <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <Tooltip />
+                            <XAxis dataKey="hour" tick={{ fontSize: 11 }} interval={0} angle={-35} textAnchor="end" height={56} />
+                            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <Tooltip formatter={(value) => [`${value} reservation${Number(value) === 1 ? "" : "s"}`, "Approved"]} />
                             <Bar dataKey="bookings" fill={palette.brand} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>

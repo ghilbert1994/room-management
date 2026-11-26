@@ -767,7 +767,26 @@ router.get("/analytics", requireAuth, requireCapability("analyticsRead"), async 
             }
         })
 
-        res.json({ totalBookings, labUsage, weeklyTrends })
+        const peakHoursResult = await db.query(`
+            SELECT EXTRACT(HOUR FROM time_start)::int AS hour, COUNT(*)::int AS count
+            FROM reservations
+            WHERE status = 'approved'
+            GROUP BY hour
+        `)
+
+        const hourCounts = new Map(peakHoursResult.rows.map(row => [Number(row.hour), Number(row.count)]))
+        const hourLabel = (hour) => {
+            const suffix = hour >= 12 ? "PM" : "AM"
+            const display = hour % 12 === 0 ? 12 : hour % 12
+            return `${display} ${suffix}`
+        }
+
+        const peakHours = []
+        for (let hour = 7; hour <= 20; hour += 1) {
+            peakHours.push({ hour: hourLabel(hour), bookings: hourCounts.get(hour) || 0 })
+        }
+
+        res.json({ totalBookings, labUsage, weeklyTrends, peakHours })
     } catch (error) {
         console.error(error)
         res.status(500).json({ error: "Failed to generate analytics" })
